@@ -7,7 +7,7 @@ import {
 } from "react-leaflet";
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
@@ -39,7 +39,7 @@ function LocationPicker({
   onSelectLocation: (location: { lat: number; lng: number }) => void;
 }) {
   useMapEvents({
-    click(e) {
+    click(e: LeafletMouseEvent) {
       const { lat, lng } = e.latlng;
       onSelectLocation({ lat, lng });
     },
@@ -68,7 +68,7 @@ function MapView({
   selectedLocation,
   onSelectLocation,
 }: MapViewProps) {
-  const defaultCenter: [number, number] = [23.669, 121.423];
+  const defaultCenter: LatLngExpression = [23.669, 121.423];
 
   return (
     <div>
