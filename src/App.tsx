@@ -172,7 +172,7 @@ function App() {
 
     const insertedReport = mapRowToReport(data as ReportRow);
     setReports((prev) => [insertedReport, ...prev]);
-    alert("已成功寫入 Supabase");
+    alert("已成功填報！");
   };
 
   return (
@@ -186,38 +186,42 @@ function App() {
     >
       <div
         style={{
-          maxWidth: "1440px",
+          maxWidth: "95vw",
           margin: "0 auto",
+          padding: "24px",
         }}
       >
         <div
-          style={{
-            marginBottom: "20px",
-            padding: "8px 4px",
-          }}
-        >
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "32px",
-              lineHeight: 1.2,
-              color: "#1f2d3d",
-              fontWeight: 700,
-            }}
-          >
-            花蓮光復鄉／馬太鞍事件填報系統
-          </h1>
+  style={{
+    marginBottom: "20px",
+    padding: "8px 4px",
+    textAlign: "center",
+  }}
+>
+  <h1
+    style={{
+      margin: 0,
+      fontSize: "32px",
+      lineHeight: 1.2,
+      color: "#1f2d3d",
+      fontWeight: 700,
+      textAlign: "center",
+    }}
+  >
+    花蓮光復鄉 馬太鞍災情填報地圖
+  </h1>
 
-          <p
-            style={{
-              marginTop: "10px",
-              marginBottom: "6px",
-              color: "#5b6b7a",
-              fontSize: "15px",
-            }}
-          >
-            左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
-          </p>
+  <p
+    style={{
+      marginTop: "10px",
+      marginBottom: "6px",
+      color: "#5b6b7a",
+      fontSize: "15px",
+      textAlign: "center",
+    }}
+  >
+    左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
+  </p>
 
           {loading && (
             <p

@@ -56,10 +56,40 @@ function PopupRow({
   value: string | number | null;
 }) {
   return (
-    <p style={{ margin: "0 0 8px 0", lineHeight: 1.5 }}>
+    <p style={{ margin: "0 0 6px 0", lineHeight: 1.45 }}>
       <strong>{label}</strong>
       {value ?? "未填"}
     </p>
+  );
+}
+
+function DetailBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details
+      style={{
+        marginTop: "10px",
+        paddingTop: "10px",
+        borderTop: "1px solid #e5e7eb",
+      }}
+    >
+      <summary
+        style={{
+          cursor: "pointer",
+          fontWeight: 700,
+          color: "#334155",
+          marginBottom: "8px",
+        }}
+      >
+        {title}
+      </summary>
+      <div style={{ marginTop: "8px" }}>{children}</div>
+    </details>
   );
 }
 
@@ -97,7 +127,7 @@ function MapView({
         center={defaultCenter}
         zoom={13}
         style={{
-          height: "680px",
+          height: "520px",
           width: "100%",
           borderRadius: "16px",
           overflow: "hidden",
@@ -129,53 +159,32 @@ function MapView({
             <Popup>
               <div
                 style={{
-                  minWidth: "260px",
-                  maxWidth: "320px",
+                  minWidth: "220px",
+                  maxWidth: "260px",
                   fontSize: "14px",
                   color: "#1f2937",
                 }}
               >
-                <div style={{ marginBottom: "10px" }}>
-                  <p
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontWeight: 700,
-                      fontSize: "16px",
-                      color: "#1f2d3d",
-                    }}
-                  >
-                    填報資料摘要
-                  </p>
-                </div>
+                <p
+                  style={{
+                    margin: "0 0 10px 0",
+                    fontWeight: 700,
+                    fontSize: "16px",
+                    color: "#1f2d3d",
+                  }}
+                >
+                  填報資料摘要
+                </p>
 
                 <PopupRow label="資料日期：" value={report.reportDate} />
                 <PopupRow label="填表人：" value={report.respondentType} />
-                <PopupRow label="地址：" value={report.address} />
-                <PopupRow label="地號：" value={report.landParcel} />
-                <PopupRow label="使用地類別／分區：" value={report.landUseType} />
-                <PopupRow label="權屬情況：" value={report.ownership} />
-                <PopupRow label="用途：" value={report.usage} />
-                <PopupRow label="是否原保地：" value={report.isIndigenousReserve} />
-                <PopupRow label="是否有土地受災：" value={report.hasLandDamage} />
-                <PopupRow label="是否有建物受災：" value={report.hasBuildingDamage} />
+                <PopupRow label="地址：" value={report.address || "未填"} />
+                <PopupRow label="地號：" value={report.landParcel || "未填"} />
+                <PopupRow label="土地受災：" value={report.hasLandDamage} />
+                <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
 
                 {report.hasLandDamage === "是" && (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      paddingTop: "10px",
-                      borderTop: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: "0 0 8px 0",
-                        fontWeight: 700,
-                        color: "#334155",
-                      }}
-                    >
-                      土地受災資訊
-                    </p>
+                  <DetailBlock title="查看土地受災詳細資料">
                     <PopupRow label="土地受災戶：" value={report.landVictimType} />
                     <PopupRow
                       label="土地泥沙高度："
@@ -186,27 +195,11 @@ function MapView({
                       }
                     />
                     <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
-                  </div>
+                  </DetailBlock>
                 )}
 
                 {report.hasBuildingDamage === "是" && (
-                  <div
-                    style={{
-                      marginTop: "12px",
-                      paddingTop: "10px",
-                      borderTop: "1px solid #e5e7eb",
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: "0 0 8px 0",
-                        fontWeight: 700,
-                        color: "#334155",
-                      }}
-                    >
-                      建物受災資訊
-                    </p>
-
+                  <DetailBlock title="查看建物受災詳細資料">
                     <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
                     <PopupRow
                       label="建物型態："
@@ -252,28 +245,13 @@ function MapView({
                           : "未填"
                       }
                     />
-                  </div>
+                  </DetailBlock>
                 )}
 
-                <div
-                  style={{
-                    marginTop: "12px",
-                    paddingTop: "10px",
-                    borderTop: "1px solid #e5e7eb",
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontWeight: 700,
-                      color: "#334155",
-                    }}
-                  >
-                    座標資訊
-                  </p>
+                <DetailBlock title="查看座標資訊">
                   <PopupRow label="緯度：" value={report.lat} />
                   <PopupRow label="經度：" value={report.lng} />
-                </div>
+                </DetailBlock>
               </div>
             </Popup>
           </Marker>

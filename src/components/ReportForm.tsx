@@ -14,8 +14,24 @@ type ReportFormProps = {
 
 type StepKey = "basic" | "land" | "building";
 
+const getCurrentDateTimeString = () => {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
 function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
-  const [formData, setFormData] = useState<Report>(emptyReport);
+  const [formData, setFormData] = useState<Report>({
+    ...emptyReport,
+    reportDate: getCurrentDateTimeString(),
+  });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   useEffect(() => {
@@ -85,12 +101,12 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     }
 
     if (!formData.reportDate) {
-      alert("請填寫資料日期");
+      alert("系統時間尚未載入，請稍後再試");
       return false;
     }
 
-    if (!formData.address.trim()) {
-      alert("請填寫地址");
+    if (!formData.respondentType) {
+      alert("請選擇填表人");
       return false;
     }
 
@@ -104,6 +120,31 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return false;
     }
 
+    if (!formData.ownership) {
+      alert("請選擇權屬情況");
+      return false;
+    }
+
+    if (!formData.usage) {
+      alert("請選擇用途");
+      return false;
+    }
+
+    if (!formData.isIndigenousReserve) {
+      alert("請選擇是否是原保地");
+      return false;
+    }
+
+    if (!formData.hasLandDamage) {
+      alert("請選擇是否有土地受災");
+      return false;
+    }
+
+    if (!formData.hasBuildingDamage) {
+      alert("請選擇是否有建物受災");
+      return false;
+    }
+
     return true;
   };
 
@@ -111,6 +152,22 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     if (formData.hasLandDamage === "否") {
       return true;
     }
+
+    if (!formData.landVictimType) {
+      alert("請選擇土地受災戶");
+      return false;
+    }
+
+    if (formData.landMudHeight === null) {
+      alert("請填寫目前泥沙堆積高度");
+      return false;
+    }
+
+    if (!formData.landDamageLevel) {
+      alert("請選擇土地受災程度");
+      return false;
+    }
+
     return true;
   };
 
@@ -119,8 +176,63 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return true;
     }
 
+    if (!formData.buildingVictimType) {
+      alert("請選擇建物受災戶");
+      return false;
+    }
+
+    if (!formData.buildingType) {
+      alert("請選擇建物型態");
+      return false;
+    }
+
     if (formData.buildingType === "其它" && !formData.buildingTypeOther.trim()) {
       alert("建物型態選擇其它時，請填寫說明");
+      return false;
+    }
+
+    if (formData.buildingFloors === null) {
+      alert("請填寫建物樓層數");
+      return false;
+    }
+
+    if (formData.buildingResidents === null) {
+      alert("請填寫建物居住人數");
+      return false;
+    }
+
+    if (!formData.buildingMaterial) {
+      alert("請選擇建物建築材質");
+      return false;
+    }
+
+    if (!formData.hasBuildingPermit) {
+      alert("請選擇建物有無建造執照");
+      return false;
+    }
+
+    if (!formData.hasUsePermit) {
+      alert("請選擇建物有無使用執照");
+      return false;
+    }
+
+    if (formData.buildingFloodHeight === null) {
+      alert("請填寫建物災時淹水高度");
+      return false;
+    }
+
+    if (formData.buildingMudHeight === null) {
+      alert("請填寫建物目前泥沙堆積高度");
+      return false;
+    }
+
+    if (!formData.buildingDamageLevel) {
+      alert("請選擇建物受災程度");
+      return false;
+    }
+
+    if (formData.damagedAreaPing === null) {
+      alert("請填寫建物受損面積");
       return false;
     }
 
@@ -138,23 +250,23 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     const cleaned: Report = { ...report };
 
     if (cleaned.hasLandDamage === "否") {
-      cleaned.landVictimType = "使用權人";
+      cleaned.landVictimType = "";
       cleaned.landMudHeight = null;
-      cleaned.landDamageLevel = "1級：局部損害但可維持原使用";
+      cleaned.landDamageLevel = "";
     }
 
     if (cleaned.hasBuildingDamage === "否") {
-      cleaned.buildingVictimType = "使用權人";
-      cleaned.buildingType = "獨棟透天";
+      cleaned.buildingVictimType = "";
+      cleaned.buildingType = "";
       cleaned.buildingTypeOther = "";
       cleaned.buildingFloors = null;
       cleaned.buildingResidents = null;
-      cleaned.buildingMaterial = "鋼筋混凝土造RC";
-      cleaned.hasBuildingPermit = "否";
-      cleaned.hasUsePermit = "否";
+      cleaned.buildingMaterial = "";
+      cleaned.hasBuildingPermit = "";
+      cleaned.hasUsePermit = "";
       cleaned.buildingFloodHeight = null;
       cleaned.buildingMudHeight = null;
-      cleaned.buildingDamageLevel = "1級：局部損害但可居住";
+      cleaned.buildingDamageLevel = "";
       cleaned.damagedAreaPing = null;
     }
 
@@ -189,8 +301,9 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
 
       setFormData({
         ...emptyReport,
-        lat: selectedLocation ? selectedLocation.lat : 0,
-        lng: selectedLocation ? selectedLocation.lng : 0,
+        reportDate: getCurrentDateTimeString(),
+        lat: selectedLocation ? selectedLocation.lat : null,
+        lng: selectedLocation ? selectedLocation.lng : null,
       });
       setCurrentStepIndex(0);
     } catch (error) {
@@ -315,14 +428,18 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
 
           <div style={{ display: "grid", gap: "14px" }}>
             <label style={labelStyle}>
-              資料日期
+              資料日期與時間
               <input
-                style={fieldStyle}
-                type="date"
+                style={{
+                  ...fieldStyle,
+                  backgroundColor: "#f8fafc",
+                  color: "#475569",
+                  cursor: "not-allowed",
+                }}
+                type="text"
                 name="reportDate"
                 value={formData.reportDate}
-                onChange={handleChange}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+                readOnly
               />
             </label>
 
@@ -334,6 +451,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.respondentType}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="馬太鞍居民">馬太鞍居民</option>
                 <option value="非馬太鞍居民">非馬太鞍居民</option>
               </select>
@@ -347,10 +465,14 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="請輸入地址"
+                placeholder="請輸入地址（非必填）"
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               />
             </label>
+
+            <p style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#64748b" }}>
+              請先在右側地圖點選位置，系統會自動帶入經緯度。
+            </p>
 
             <label style={labelStyle}>
               經度
@@ -359,8 +481,9 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 type="number"
                 step="any"
                 name="lng"
-                value={formData.lng}
+                value={formData.lng ?? ""}
                 onChange={handleChange}
+                placeholder="請點選地圖取得經度"
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               />
             </label>
@@ -372,8 +495,9 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 type="number"
                 step="any"
                 name="lat"
-                value={formData.lat}
+                value={formData.lat ?? ""}
                 onChange={handleChange}
+                placeholder="請點選地圖取得緯度"
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               />
             </label>
@@ -412,6 +536,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.ownership}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="公有">公有</option>
                 <option value="私有">私有</option>
               </select>
@@ -425,6 +550,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.usage}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="居住">居住</option>
                 <option value="農用">農用</option>
                 <option value="商用">商用</option>
@@ -440,6 +566,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.isIndigenousReserve}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="是">是</option>
                 <option value="否">否</option>
               </select>
@@ -453,6 +580,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.hasLandDamage}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="是">是</option>
                 <option value="否">否</option>
               </select>
@@ -466,6 +594,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.hasBuildingDamage}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="是">是</option>
                 <option value="否">否</option>
               </select>
@@ -490,6 +619,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.landVictimType}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="使用權人">使用權人</option>
                 <option value="所有權人">所有權人</option>
               </select>
@@ -515,6 +645,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.landDamageLevel}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="1級：局部損害但可維持原使用">
                   1級：局部損害但可維持原使用
                 </option>
@@ -546,6 +677,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.buildingVictimType}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="使用權人">使用權人</option>
                 <option value="所有權人">所有權人</option>
               </select>
@@ -559,6 +691,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.buildingType}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="獨棟透天">獨棟透天</option>
                 <option value="連棟透天">連棟透天</option>
                 <option value="獨棟公寓">獨棟公寓</option>
@@ -615,6 +748,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.buildingMaterial}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="木造">木造</option>
                 <option value="磚造">磚造</option>
                 <option value="鋼筋混凝土造RC">鋼筋混凝土造RC</option>
@@ -629,6 +763,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.hasBuildingPermit}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="是">是</option>
                 <option value="否">否</option>
               </select>
@@ -642,6 +777,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.hasUsePermit}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="是">是</option>
                 <option value="否">否</option>
               </select>
@@ -679,6 +815,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.buildingDamageLevel}
                 onChange={handleChange}
               >
+                <option value="">請選擇</option>
                 <option value="1級：局部損害但可居住">
                   1級：局部損害但可居住
                 </option>
