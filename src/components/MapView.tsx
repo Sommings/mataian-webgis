@@ -233,11 +233,7 @@ function MapView({
                       />
                       <PopupRow
                         label="建物目前泥沙堆積高度："
-                        value={
-                          report.buildingMudHeight !== null
-                            ? `${report.buildingMudHeight} 公分`
-                            : "未填"
-                        }
+                        value={report.buildingMudHeight || "未填"}
                       />
                       <PopupRow
                         label="建物受災程度："
