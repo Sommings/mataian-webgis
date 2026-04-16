@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -68,7 +69,7 @@ function DetailBlock({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <details
@@ -154,108 +155,110 @@ function MapView({
           </Marker>
         )}
 
-        {reports.map((report, index) => (
-          <Marker key={index} position={[report.lat, report.lng]}>
-            <Popup>
-              <div
-                style={{
-                  minWidth: "220px",
-                  maxWidth: "260px",
-                  fontSize: "14px",
-                  color: "#1f2937",
-                }}
-              >
-                <p
-                  style={{
-                    margin: "0 0 10px 0",
-                    fontWeight: 700,
-                    fontSize: "16px",
-                    color: "#1f2d3d",
-                  }}
-                >
-                  填報資料摘要
-                </p>
+        {reports
+  .filter((report) => report.lat !== null && report.lng !== null)
+  .map((report, index) => (
+    <Marker key={index} position={[report.lat!, report.lng!]}>
+      <Popup>
+        <div
+          style={{
+            minWidth: "220px",
+            maxWidth: "260px",
+            fontSize: "14px",
+            color: "#1f2937",
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 10px 0",
+              fontWeight: 700,
+              fontSize: "16px",
+              color: "#1f2d3d",
+            }}
+          >
+            填報資料摘要
+          </p>
 
-                <PopupRow label="資料日期：" value={report.reportDate} />
-                <PopupRow label="填表人：" value={report.respondentType} />
-                <PopupRow label="地址：" value={report.address || "未填"} />
-                <PopupRow label="地號：" value={report.landParcel || "未填"} />
-                <PopupRow label="土地受災：" value={report.hasLandDamage} />
-                <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
+          <PopupRow label="資料日期：" value={report.reportDate} />
+          <PopupRow label="填表人：" value={report.respondentType} />
+          <PopupRow label="地址：" value={report.address || "未填"} />
+          <PopupRow label="地號：" value={report.landParcel || "未填"} />
+          <PopupRow label="土地受災：" value={report.hasLandDamage} />
+          <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
 
-                {report.hasLandDamage === "是" && (
-                  <DetailBlock title="查看土地受災詳細資料">
-                    <PopupRow label="土地受災戶：" value={report.landVictimType} />
-                    <PopupRow
-                      label="土地泥沙高度："
-                      value={
-                        report.landMudHeight !== null
-                          ? `${report.landMudHeight} 公分`
-                          : "未填"
-                      }
-                    />
-                    <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
-                  </DetailBlock>
-                )}
+          {report.hasLandDamage === "是" && (
+            <DetailBlock title="查看土地受災詳細資料">
+              <PopupRow label="土地受災戶：" value={report.landVictimType} />
+              <PopupRow
+                label="土地泥沙高度："
+                value={
+                  report.landMudHeight !== null
+                    ? `${report.landMudHeight} 公分`
+                    : "未填"
+                }
+              />
+              <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
+            </DetailBlock>
+          )}
 
-                {report.hasBuildingDamage === "是" && (
-                  <DetailBlock title="查看建物受災詳細資料">
-                    <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
-                    <PopupRow
-                      label="建物型態："
-                      value={
-                        report.buildingType === "其它" && report.buildingTypeOther
-                          ? `${report.buildingType}（${report.buildingTypeOther}）`
-                          : report.buildingType
-                      }
-                    />
-                    <PopupRow
-                      label="建物樓層數："
-                      value={report.buildingFloors ?? "未填"}
-                    />
-                    <PopupRow
-                      label="建物居住人數："
-                      value={report.buildingResidents ?? "未填"}
-                    />
-                    <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
-                    <PopupRow label="建物有無建造執照：" value={report.hasBuildingPermit} />
-                    <PopupRow label="建物有無使用執照：" value={report.hasUsePermit} />
-                    <PopupRow
-                      label="建物災時淹水高度："
-                      value={
-                        report.buildingFloodHeight !== null
-                          ? `${report.buildingFloodHeight} 公分`
-                          : "未填"
-                      }
-                    />
-                    <PopupRow
-                      label="建物目前泥沙堆積高度："
-                      value={
-                        report.buildingMudHeight !== null
-                          ? `${report.buildingMudHeight} 公分`
-                          : "未填"
-                      }
-                    />
-                    <PopupRow label="建物受災程度：" value={report.buildingDamageLevel} />
-                    <PopupRow
-                      label="建物受損面積："
-                      value={
-                        report.damagedAreaPing !== null
-                          ? `${report.damagedAreaPing} 坪`
-                          : "未填"
-                      }
-                    />
-                  </DetailBlock>
-                )}
+          {report.hasBuildingDamage === "是" && (
+            <DetailBlock title="查看建物受災詳細資料">
+              <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
+              <PopupRow
+                label="建物型態："
+                value={
+                  report.buildingType === "其它" && report.buildingTypeOther
+                    ? `${report.buildingType}（${report.buildingTypeOther}）`
+                    : report.buildingType
+                }
+              />
+              <PopupRow
+                label="建物樓層數："
+                value={report.buildingFloors ?? "未填"}
+              />
+              <PopupRow
+                label="建物居住人數："
+                value={report.buildingResidents ?? "未填"}
+              />
+              <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
+              <PopupRow label="建物有無建造執照：" value={report.hasBuildingPermit} />
+              <PopupRow label="建物有無使用執照：" value={report.hasUsePermit} />
+              <PopupRow
+                label="建物災時淹水高度："
+                value={
+                  report.buildingFloodHeight !== null
+                    ? `${report.buildingFloodHeight} 公分`
+                    : "未填"
+                }
+              />
+              <PopupRow
+                label="建物目前泥沙堆積高度："
+                value={
+                  report.buildingMudHeight !== null
+                    ? `${report.buildingMudHeight} 公分`
+                    : "未填"
+                }
+              />
+              <PopupRow label="建物受災程度：" value={report.buildingDamageLevel} />
+              <PopupRow
+                label="建物受損面積："
+                value={
+                  report.damagedAreaPing !== null
+                    ? `${report.damagedAreaPing} 坪`
+                    : "未填"
+                }
+              />
+            </DetailBlock>
+          )}
 
-                <DetailBlock title="查看座標資訊">
-                  <PopupRow label="緯度：" value={report.lat} />
-                  <PopupRow label="經度：" value={report.lng} />
-                </DetailBlock>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+          <DetailBlock title="查看座標資訊">
+            <PopupRow label="緯度：" value={report.lat} />
+            <PopupRow label="經度：" value={report.lng} />
+          </DetailBlock>
+        </div>
+      </Popup>
+    </Marker>
+  ))}
       </MapContainer>
     </div>
   );
