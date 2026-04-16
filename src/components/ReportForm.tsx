@@ -74,7 +74,6 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       "lng",
       "buildingFloors",
       "buildingResidents",
-      "buildingMudHeight",
       "damagedAreaPing",
     ];
 
@@ -214,8 +213,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return false;
     }
 
-    if (formData.buildingMudHeight === null) {
-      alert("請填寫建物目前泥沙堆積高度");
+    if (!formData.buildingMudHeight) {
+      alert("請選擇建物目前泥沙堆積高度");
       return false;
     }
 
@@ -258,7 +257,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       cleaned.hasBuildingPermit = "";
       cleaned.hasUsePermit = "";
       cleaned.buildingFloodHeight = "";
-      cleaned.buildingMudHeight = null;
+      cleaned.buildingMudHeight = "";
       cleaned.buildingDamageLevel = "";
       cleaned.damagedAreaPing = null;
     }
@@ -815,15 +814,20 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
             </label>
 
             <label style={labelStyle}>
-              建物目前泥沙堆積高度（公分）
-              <input
+              建物目前泥沙堆積高度
+              <select
                 style={fieldStyle}
-                type="number"
                 name="buildingMudHeight"
-                value={formData.buildingMudHeight ?? ""}
+                value={formData.buildingMudHeight}
                 onChange={handleChange}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
+              >
+                <option value="">請選擇</option>
+                <option value="到腳踝">到腳踝</option>
+                <option value="到小腿">到小腿</option>
+                <option value="到膝蓋">到膝蓋</option>
+                <option value="到身體">到身體</option>
+                <option value="超過人">超過人</option>
+              </select>
             </label>
 
             <label style={labelStyle}>

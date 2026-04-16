@@ -36,7 +36,7 @@ type ReportRow = {
   has_building_permit: Report["hasBuildingPermit"];
   has_use_permit: Report["hasUsePermit"];
   building_flood_height: Report["buildingFloodHeight"];
-  building_mud_height: number | null;
+  building_mud_height: Report["buildingMudHeight"];
   building_damage_level: Report["buildingDamageLevel"];
   damaged_area_ping: number | null;
   created_at: string;

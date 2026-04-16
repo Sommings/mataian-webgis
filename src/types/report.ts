@@ -75,7 +75,7 @@ export type Report = {
   hasBuildingPermit: YesNo;
   hasUsePermit: YesNo;
   buildingFloodHeight: HeightLevel;
-  buildingMudHeight: number | null;
+  buildingMudHeight: HeightLevel;
   buildingDamageLevel: BuildingDamageLevel;
   damagedAreaPing: number | null;
 };
@@ -109,7 +109,7 @@ export const emptyReport: Report = {
   hasBuildingPermit: "",
   hasUsePermit: "",
   buildingFloodHeight: "",
-  buildingMudHeight: null,
+  buildingMudHeight: "",
   buildingDamageLevel: "",
   damagedAreaPing: null,
 };
