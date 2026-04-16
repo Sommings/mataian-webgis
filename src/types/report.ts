@@ -1,5 +1,12 @@
 export type RespondentType = "" | "馬太鞍居民" | "非馬太鞍居民";
 
+export type TribeName =
+  | ""
+  | "Fata'an（馬太鞍）"
+  | "Atomo（阿陶莫）"
+  | "Tafalong（太巴塱）"
+  | "無";
+
 export type OwnershipType = "" | "公有" | "私有";
 
 export type UsageType = "" | "居住" | "農用" | "商用" | "公共服務";
@@ -7,6 +14,14 @@ export type UsageType = "" | "居住" | "農用" | "商用" | "公共服務";
 export type YesNo = "" | "是" | "否";
 
 export type VictimRightsType = "" | "使用權人" | "所有權人";
+
+export type HeightLevel =
+  | ""
+  | "到腳踝"
+  | "到小腿"
+  | "到膝蓋"
+  | "到身體"
+  | "超過人";
 
 export type LandDamageLevel =
   | ""
@@ -34,11 +49,12 @@ export type BuildingMaterial = "" | "木造" | "磚造" | "鋼筋混凝土造RC"
 export type Report = {
   reportDate: string;
   respondentType: RespondentType;
+  tribeName: TribeName;
   address: string;
+  placeName: string;
   lng: number | null;
   lat: number | null;
   landParcel: string;
-  landUseType: string;
   ownership: OwnershipType;
   usage: UsageType;
   isIndigenousReserve: YesNo;
@@ -47,7 +63,7 @@ export type Report = {
   hasBuildingDamage: YesNo;
 
   landVictimType: VictimRightsType;
-  landMudHeight: number | null;
+  landMudHeight: HeightLevel;
   landDamageLevel: LandDamageLevel;
 
   buildingVictimType: VictimRightsType;
@@ -58,7 +74,7 @@ export type Report = {
   buildingMaterial: BuildingMaterial;
   hasBuildingPermit: YesNo;
   hasUsePermit: YesNo;
-  buildingFloodHeight: number | null;
+  buildingFloodHeight: HeightLevel;
   buildingMudHeight: number | null;
   buildingDamageLevel: BuildingDamageLevel;
   damagedAreaPing: number | null;
@@ -67,11 +83,12 @@ export type Report = {
 export const emptyReport: Report = {
   reportDate: "",
   respondentType: "",
+  tribeName: "",
   address: "",
+  placeName: "",
   lng: null,
   lat: null,
   landParcel: "",
-  landUseType: "",
   ownership: "",
   usage: "",
   isIndigenousReserve: "",
@@ -80,7 +97,7 @@ export const emptyReport: Report = {
   hasBuildingDamage: "",
 
   landVictimType: "",
-  landMudHeight: null,
+  landMudHeight: "",
   landDamageLevel: "",
 
   buildingVictimType: "",
@@ -91,7 +108,7 @@ export const emptyReport: Report = {
   buildingMaterial: "",
   hasBuildingPermit: "",
   hasUsePermit: "",
-  buildingFloodHeight: null,
+  buildingFloodHeight: "",
   buildingMudHeight: null,
   buildingDamageLevel: "",
   damagedAreaPing: null,

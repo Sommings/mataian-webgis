@@ -13,18 +13,19 @@ type ReportRow = {
   id: number;
   report_date: string;
   respondent_type: Report["respondentType"];
+  tribe_name: Report["tribeName"];
   address: string;
+  place_name: string;
   lng: number;
   lat: number;
   land_parcel: string;
-  land_use_type: string;
   ownership: Report["ownership"];
   usage: Report["usage"];
   is_indigenous_reserve: Report["isIndigenousReserve"];
   has_land_damage: Report["hasLandDamage"];
   has_building_damage: Report["hasBuildingDamage"];
   land_victim_type: Report["landVictimType"];
-  land_mud_height: number | null;
+  land_mud_height: Report["landMudHeight"];
   land_damage_level: Report["landDamageLevel"];
   building_victim_type: Report["buildingVictimType"];
   building_type: Report["buildingType"];
@@ -34,7 +35,7 @@ type ReportRow = {
   building_material: Report["buildingMaterial"];
   has_building_permit: Report["hasBuildingPermit"];
   has_use_permit: Report["hasUsePermit"];
-  building_flood_height: number | null;
+  building_flood_height: Report["buildingFloodHeight"];
   building_mud_height: number | null;
   building_damage_level: Report["buildingDamageLevel"];
   damaged_area_ping: number | null;
@@ -45,11 +46,12 @@ function mapRowToReport(row: ReportRow): Report {
   return {
     reportDate: row.report_date,
     respondentType: row.respondent_type,
+    tribeName: row.tribe_name,
     address: row.address,
+    placeName: row.place_name,
     lng: row.lng,
     lat: row.lat,
     landParcel: row.land_parcel,
-    landUseType: row.land_use_type,
     ownership: row.ownership,
     usage: row.usage,
     isIndigenousReserve: row.is_indigenous_reserve,
@@ -91,7 +93,7 @@ function App() {
       } else {
         root.style.setProperty("--app-grid-columns", "420px 1fr");
         root.style.setProperty("--app-form-position", "sticky");
-        root.style.setProperty("--app-map-min-height", "700px");
+        root.style.setProperty("--app-map-min-height", "540px");
       }
     };
 
@@ -129,11 +131,12 @@ function App() {
     const payload = {
       report_date: newReport.reportDate,
       respondent_type: newReport.respondentType,
+      tribe_name: newReport.tribeName,
       address: newReport.address,
+      place_name: newReport.placeName,
       lng: newReport.lng,
       lat: newReport.lat,
       land_parcel: newReport.landParcel,
-      land_use_type: newReport.landUseType,
       ownership: newReport.ownership,
       usage: newReport.usage,
       is_indigenous_reserve: newReport.isIndigenousReserve,
@@ -192,44 +195,58 @@ function App() {
         }}
       >
         <div
-  style={{
-    marginBottom: "20px",
-    padding: "8px 4px",
-    textAlign: "center",
-  }}
->
-  <h1
-    style={{
-      margin: 0,
-      fontSize: "32px",
-      lineHeight: 1.2,
-      color: "#1f2d3d",
-      fontWeight: 700,
-      textAlign: "center",
-    }}
-  >
-    花蓮光復鄉 馬太鞍災情填報地圖
-  </h1>
+          style={{
+            marginBottom: "28px",
+            padding: "20px 12px 12px",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: "14px",
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              color: "#3b82f6",
+            }}
+          >
+            WebGIS 災情填報系統
+          </p>
 
-  <p
-    style={{
-      marginTop: "10px",
-      marginBottom: "6px",
-      color: "#5b6b7a",
-      fontSize: "15px",
-      textAlign: "center",
-    }}
-  >
-    左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
-  </p>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "38px",
+              lineHeight: 1.15,
+              color: "#1f2d3d",
+              fontWeight: 800,
+              textAlign: "center",
+            }}
+          >
+            花蓮光復鄉 馬太鞍災情填報地圖
+          </h1>
+
+          <p
+            style={{
+              marginTop: "14px",
+              marginBottom: "8px",
+              color: "#64748b",
+              fontSize: "16px",
+              lineHeight: 1.7,
+              textAlign: "center",
+            }}
+          >
+            左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
+          </p>
 
           {loading && (
             <p
               style={{
                 margin: 0,
-                color: "#2b6cb0",
-                fontWeight: 600,
+                color: "#2563eb",
+                fontWeight: 700,
                 fontSize: "14px",
+                textAlign: "center",
               }}
             >
               資料載入中...
@@ -267,7 +284,7 @@ function App() {
               borderRadius: "18px",
               padding: "18px",
               boxShadow: "0 10px 30px rgba(31, 45, 61, 0.08)",
-              minHeight: "var(--app-map-min-height, 700px)",
+              minHeight: "var(--app-map-min-height, 540px)",
             }}
           >
             <MapView

@@ -72,10 +72,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     const numberFields = [
       "lat",
       "lng",
-      "landMudHeight",
       "buildingFloors",
       "buildingResidents",
-      "buildingFloodHeight",
       "buildingMudHeight",
       "damagedAreaPing",
     ];
@@ -110,13 +108,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return false;
     }
 
-    if (!formData.landParcel.trim()) {
-      alert("請填寫地號");
-      return false;
-    }
-
-    if (!formData.landUseType.trim()) {
-      alert("請填寫使用地類別或使用分區");
+    if (!formData.tribeName) {
+      alert("請選擇屬於哪個部落");
       return false;
     }
 
@@ -158,8 +151,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return false;
     }
 
-    if (formData.landMudHeight === null) {
-      alert("請填寫目前泥沙堆積高度");
+    if (!formData.landMudHeight) {
+      alert("請選擇目前泥沙堆積高度");
       return false;
     }
 
@@ -216,8 +209,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       return false;
     }
 
-    if (formData.buildingFloodHeight === null) {
-      alert("請填寫建物災時淹水高度");
+    if (!formData.buildingFloodHeight) {
+      alert("請選擇建物災時淹水高度");
       return false;
     }
 
@@ -251,7 +244,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
 
     if (cleaned.hasLandDamage === "否") {
       cleaned.landVictimType = "";
-      cleaned.landMudHeight = null;
+      cleaned.landMudHeight = "";
       cleaned.landDamageLevel = "";
     }
 
@@ -264,7 +257,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
       cleaned.buildingMaterial = "";
       cleaned.hasBuildingPermit = "";
       cleaned.hasUsePermit = "";
-      cleaned.buildingFloodHeight = null;
+      cleaned.buildingFloodHeight = "";
       cleaned.buildingMudHeight = null;
       cleaned.buildingDamageLevel = "";
       cleaned.damagedAreaPing = null;
@@ -458,6 +451,22 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
             </label>
 
             <label style={labelStyle}>
+              屬於哪個部落？
+              <select
+                style={fieldStyle}
+                name="tribeName"
+                value={formData.tribeName}
+                onChange={handleChange}
+              >
+                <option value="">請選擇</option>
+                <option value="Fata'an（馬太鞍）">Fata'an（馬太鞍）</option>
+                <option value="Atomo（阿陶莫）">Atomo（阿陶莫）</option>
+                <option value="Tafalong（太巴塱）">Tafalong（太巴塱）</option>
+                <option value="無">無</option>
+              </select>
+            </label>
+
+            <label style={labelStyle}>
               地址
               <input
                 style={fieldStyle}
@@ -466,6 +475,19 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 value={formData.address}
                 onChange={handleChange}
                 placeholder="請輸入地址（非必填）"
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+              />
+            </label>
+
+            <label style={labelStyle}>
+              地點名稱
+              <input
+                style={fieldStyle}
+                type="text"
+                name="placeName"
+                value={formData.placeName}
+                onChange={handleChange}
+                placeholder="請輸入地點名稱（非必填）"
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               />
             </label>
@@ -510,20 +532,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 name="landParcel"
                 value={formData.landParcel}
                 onChange={handleChange}
-                placeholder="請輸入地號"
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
-            </label>
-
-            <label style={labelStyle}>
-              使用地類別或使用分區
-              <input
-                style={fieldStyle}
-                type="text"
-                name="landUseType"
-                value={formData.landUseType}
-                onChange={handleChange}
-                placeholder="例如：特定農業區、一般農業區、建地等"
+                placeholder="請輸入地號（非必填）"
                 onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               />
             </label>
@@ -626,15 +635,20 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
             </label>
 
             <label style={labelStyle}>
-              目前泥沙堆積高度（公分）
-              <input
+              目前泥沙堆積高度
+              <select
                 style={fieldStyle}
-                type="number"
                 name="landMudHeight"
-                value={formData.landMudHeight ?? ""}
+                value={formData.landMudHeight}
                 onChange={handleChange}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
+              >
+                <option value="">請選擇</option>
+                <option value="到腳踝">到腳踝</option>
+                <option value="到小腿">到小腿</option>
+                <option value="到膝蓋">到膝蓋</option>
+                <option value="到身體">到身體</option>
+                <option value="超過人">超過人</option>
+              </select>
             </label>
 
             <label style={labelStyle}>
@@ -784,15 +798,20 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
             </label>
 
             <label style={labelStyle}>
-              建物災時淹水高度（公分）
-              <input
+              建物災時淹水高度
+              <select
                 style={fieldStyle}
-                type="number"
                 name="buildingFloodHeight"
-                value={formData.buildingFloodHeight ?? ""}
+                value={formData.buildingFloodHeight}
                 onChange={handleChange}
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
+              >
+                <option value="">請選擇</option>
+                <option value="到腳踝">到腳踝</option>
+                <option value="到小腿">到小腿</option>
+                <option value="到膝蓋">到膝蓋</option>
+                <option value="到身體">到身體</option>
+                <option value="超過人">超過人</option>
+              </select>
             </label>
 
             <label style={labelStyle}>
