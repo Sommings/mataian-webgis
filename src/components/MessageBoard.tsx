@@ -55,13 +55,9 @@ export default function MessageBoard() {
         .limit(50);
 
       if (error) {
-        if (error.code === "42P01") {
-          console.warn("Messages table does not exist yet. Please run the SQL migration.");
-        } else {
-          console.error("讀取留言失敗：", error);
-        }
-        return;
-      }
+  console.error("讀取 messages 失敗：", error);
+  return;
+}
 
       if (data) setMessages(data);
     } catch (err) {
@@ -89,18 +85,15 @@ export default function MessageBoard() {
         .insert([payload]);
 
       if (error) {
-        console.warn("留言寫入資料庫失敗（可能是尚未建立資料表）。切換為本地預覽模式！");
-        // Fallback to local state
-        const fallbackMsg: Message = {
-          id: Date.now(),
-          ...payload,
-          created_at: new Date().toISOString()
-        };
-        setMessages((prev) => [fallbackMsg, ...prev]);
-        setNewMessage("");
-        setIsSubmitting(false);
-        return;
-      }
+  console.error("留言寫入 Supabase 失敗：", error);
+  console.log("error.code =", error?.code);
+  console.log("error.message =", error?.message);
+  console.log("error.details =", error?.details);
+  console.log("error.hint =", error?.hint);
+  alert("留言沒有成功寫入 Supabase，請查看 Console。");
+  setIsSubmitting(false);
+  return;
+}
 
       setNewMessage("");
       // 即時更新會透過 subscription 處理，如果沒觸發也可主動 fetch
