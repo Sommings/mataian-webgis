@@ -145,6 +145,7 @@ function MapView({
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
   const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
@@ -596,7 +597,11 @@ function MapView({
                       <DetailBlock title="現場照片">
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
                           {report.photos.map((photoUrl, idx) => (
-                            <a key={idx} href={photoUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>
+                            <div 
+                              key={idx} 
+                              onClick={() => setLightboxPhoto(photoUrl)} 
+                              style={{ display: "block", cursor: "zoom-in" }}
+                            >
                               <img
                                 src={photoUrl}
                                 alt={`現場照片 ${idx + 1}`}
@@ -605,10 +610,13 @@ function MapView({
                                   maxHeight: "150px",
                                   objectFit: "cover",
                                   borderRadius: "8px",
-                                  border: "1px solid #e5e7eb"
+                                  border: "1px solid #e5e7eb",
+                                  transition: "transform 0.2s"
                                 }}
+                                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
+                                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
                               />
-                            </a>
+                            </div>
                           ))}
                         </div>
                       </DetailBlock>
@@ -619,6 +627,61 @@ function MapView({
             );
           })}
       </MapContainer>
+
+      {lightboxPhoto && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.85)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+          }}
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <img
+            src={lightboxPhoto}
+            alt="現場照片放大檢視"
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+              borderRadius: "8px",
+              boxShadow: "0 4px 6px rgba(0,0,0,0.3)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setLightboxPhoto(null)}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              background: "rgba(255,255,255,0.2)",
+              color: "white",
+              border: "none",
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              fontSize: "24px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+            onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.4)"}
+            onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
