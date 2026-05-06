@@ -236,8 +236,6 @@ code {
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
-  position: sticky;
-  top: 24px;
 }
 
 .app-map-panel {
@@ -246,6 +244,9 @@ code {
   padding: 18px;
   box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
   min-height: 540px;
+  height: calc(100vh - 48px);
+  position: sticky;
+  top: 24px;
 }
 
 /* --- Mobile Responsive (RWD) --- */
