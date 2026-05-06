@@ -512,8 +512,21 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 onChange={handleChange}
               >
                 <option value="">請選擇</option>
-                <option value="馬太鞍居民">馬太鞍居民</option>
-                <option value="非馬太鞍居民">非馬太鞍居民</option>
+                <option value="大馬村居民">大馬村居民</option>
+                <option value="大平村居民">大平村居民</option>
+                <option value="北富村居民">北富村居民</option>
+                <option value="南富村居民">南富村居民</option>
+                <option value="西富村居民">西富村居民</option>
+                <option value="大華村居民">大華村居民</option>
+                <option value="大全村居民">大全村居民</option>
+                <option value="大興村居民">大興村居民</option>
+                <option value="大同村居民">大同村居民</option>
+                <option value="大進村居民">大進村居民</option>
+                <option value="東富村居民">東富村居民</option>
+                <option value="馬遠村居民">馬遠村居民</option>
+                <option value="明利村居民">明利村居民</option>
+                <option value="長橋里居民">長橋里居民</option>
+                <option value="其它地區居民">其它地區居民</option>
               </select>
             </label>
 
