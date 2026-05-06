@@ -145,7 +145,7 @@ function MapView({
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
   const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
-  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  const [lightboxData, setLightboxData] = useState<{ photos: string[]; index: number } | null>(null);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
@@ -594,32 +594,31 @@ function MapView({
                     </DetailBlock>
 
                     {report.photos && report.photos.length > 0 && (
-                      <DetailBlock title="現場照片">
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
-                          {report.photos.map((photoUrl, idx) => (
-                            <div 
-                              key={idx} 
-                              onClick={() => setLightboxPhoto(photoUrl)} 
-                              style={{ display: "block", cursor: "zoom-in" }}
-                            >
-                              <img
-                                src={photoUrl}
-                                alt={`現場照片 ${idx + 1}`}
-                                style={{
-                                  width: "100%",
-                                  maxHeight: "150px",
-                                  objectFit: "cover",
-                                  borderRadius: "8px",
-                                  border: "1px solid #e5e7eb",
-                                  transition: "transform 0.2s"
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.transform = "scale(1.02)"}
-                                onMouseOut={(e) => e.currentTarget.style.transform = "scale(1)"}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </DetailBlock>
+                      <div style={{ marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
+                        <button
+                          onClick={() => setLightboxData({ photos: report.photos!, index: 0 })}
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            backgroundColor: "#3b82f6",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: "15px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "background-color 0.2s"
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#3b82f6"}
+                        >
+                          查看現場照片 ({report.photos.length} 張)
+                        </button>
+                      </div>
                     )}
                   </div>
                 </Popup>
@@ -628,7 +627,7 @@ function MapView({
           })}
       </MapContainer>
 
-      {lightboxPhoto && (
+      {lightboxData && (
         <div
           style={{
             position: "fixed",
@@ -643,11 +642,11 @@ function MapView({
             justifyContent: "center",
             padding: "20px",
           }}
-          onClick={() => setLightboxPhoto(null)}
+          onClick={() => setLightboxData(null)}
         >
           <img
-            src={lightboxPhoto}
-            alt="現場照片放大檢視"
+            src={lightboxData.photos[lightboxData.index]}
+            alt={`現場照片 ${lightboxData.index + 1}`}
             style={{
               maxWidth: "100%",
               maxHeight: "100%",
@@ -657,8 +656,26 @@ function MapView({
             }}
             onClick={(e) => e.stopPropagation()}
           />
+
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: 600,
+              background: "rgba(0,0,0,0.5)",
+              padding: "6px 16px",
+              borderRadius: "20px"
+            }}
+          >
+            {lightboxData.index + 1} / {lightboxData.photos.length}
+          </div>
+
           <button
-            onClick={() => setLightboxPhoto(null)}
+            onClick={() => setLightboxData(null)}
             style={{
               position: "absolute",
               top: "20px",
@@ -680,6 +697,71 @@ function MapView({
           >
             ×
           </button>
+
+          {lightboxData.photos.length > 1 && (
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxData({
+                    ...lightboxData,
+                    index: (lightboxData.index - 1 + lightboxData.photos.length) % lightboxData.photos.length
+                  });
+                }}
+                style={{
+                  position: "absolute",
+                  left: "20px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(255,255,255,0.2)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "50px",
+                  height: "50px",
+                  fontSize: "28px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.4)"}
+                onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+              >
+                ‹
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxData({
+                    ...lightboxData,
+                    index: (lightboxData.index + 1) % lightboxData.photos.length
+                  });
+                }}
+                style={{
+                  position: "absolute",
+                  right: "20px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(255,255,255,0.2)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "50px",
+                  height: "50px",
+                  fontSize: "28px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.4)"}
+                onMouseOut={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+              >
+                ›
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
