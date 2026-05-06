@@ -25,7 +25,7 @@ def main():
     
     for sr in sf.shapeRecords():
         d = sr.record.as_dict()
-        if d.get('縣市名') == '花蓮縣' and d.get('鄉鎮名') == '光復鄉':
+        if d.get('縣市名') == '花蓮縣' and d.get('鄉鎮名') in ['光復鄉', '萬榮鄉', '鳳林鎮']:
             geom = sr.shape.__geo_interface__
             
             # Transform coordinates
