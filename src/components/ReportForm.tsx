@@ -455,6 +455,38 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
           </p>
 
           <div style={{ display: "grid", gap: "14px" }}>
+            <p style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#64748b" }}>
+              請先在右側地圖點選位置，系統會自動帶入經緯度。
+            </p>
+
+            <label style={labelStyle}>
+              經度
+              <input
+                style={fieldStyle}
+                type="number"
+                step="any"
+                name="lng"
+                value={formData.lng ?? ""}
+                onChange={handleChange}
+                placeholder="請點選地圖取得經度"
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+              />
+            </label>
+
+            <label style={labelStyle}>
+              緯度
+              <input
+                style={fieldStyle}
+                type="number"
+                step="any"
+                name="lat"
+                value={formData.lat ?? ""}
+                onChange={handleChange}
+                placeholder="請點選地圖取得緯度"
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+              />
+            </label>
+
             <label style={labelStyle}>
               資料日期與時間
               <input
@@ -529,37 +561,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
               />
             </label>
 
-            <p style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#64748b" }}>
-              請先在右側地圖點選位置，系統會自動帶入經緯度。
-            </p>
 
-            <label style={labelStyle}>
-              經度
-              <input
-                style={fieldStyle}
-                type="number"
-                step="any"
-                name="lng"
-                value={formData.lng ?? ""}
-                onChange={handleChange}
-                placeholder="請點選地圖取得經度"
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
-            </label>
-
-            <label style={labelStyle}>
-              緯度
-              <input
-                style={fieldStyle}
-                type="number"
-                step="any"
-                name="lat"
-                value={formData.lat ?? ""}
-                onChange={handleChange}
-                placeholder="請點選地圖取得緯度"
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
-            </label>
 
             <label style={labelStyle}>
               地號
