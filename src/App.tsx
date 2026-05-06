@@ -282,6 +282,7 @@ function App() {
         reportCount={reports.length}
       />
     </div>
+  </div>
   );
 }
 
