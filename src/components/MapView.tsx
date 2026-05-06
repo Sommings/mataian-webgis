@@ -8,13 +8,11 @@ import {
   useMap,
   LayersControl,
   GeoJSON,
+  FeatureGroup,
 } from "react-leaflet";
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 
 type SelectedLocation = {
   lat: number;
@@ -28,39 +26,24 @@ type MapViewProps = {
   lastSubmittedLocation?: SelectedLocation;
 };
 
-delete (L.Icon.Default.prototype as L.Icon.Default & {
-  _getIconUrl?: unknown;
-})._getIconUrl;
+const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
+  let extraClass = "";
+  if (type === "pulse") extraClass = " custom-map-pin-pulse";
+  if (type === "bounce") extraClass = " custom-map-pin-bounce";
+  if (type === "default") extraClass = " custom-map-pin-default";
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
-});
+  return new L.DivIcon({
+    className: "custom-map-pin-wrapper",
+    html: `<div class="custom-map-pin${extraClass}"></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -28],
+  });
+};
 
-const bounceIcon = new L.Icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: "marker-bounce"
-});
-
-const pulseIcon = new L.Icon({
-  iconUrl: markerIcon,
-  iconRetinaUrl: markerIcon2x,
-  shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  className: "marker-pulse"
-});
-
-const defaultIcon = new L.Icon.Default();
+const bounceIcon = createCustomIcon("bounce");
+const pulseIcon = createCustomIcon("pulse");
+const defaultIcon = createCustomIcon("default");
 
 function MapUpdater({ center }: { center: [number, number] | null }) {
   const map = useMap();
@@ -161,15 +144,15 @@ function MapView({
   const [isSearching, setIsSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
-  const [addressDb, setAddressDb] = useState<{a: string, x: number, y: number}[]>([]);
+  const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
 
   useEffect(() => {
-    fetch("/fataan_reserve.geojson")
+    fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
       .then((res) => res.json())
       .then((data) => setReserveGeojson(data))
-      .catch((err) => console.error("載入原住民保留地 GeoJSON 失敗：", err));
+      .catch((err) => console.error("無法載入原住民保留地 GeoJSON:", err));
 
-    fetch("/address_db.json")
+    fetch(`${import.meta.env.BASE_URL}address_db.json`)
       .then((res) => res.json())
       .then((data) => setAddressDb(data))
       .catch((err) => console.error("載入本地門牌資料庫失敗：", err));
@@ -193,7 +176,7 @@ function MapView({
 
       const localMatch = addressDb.find(d => {
         const normA = normalizeAddress(d.a);
-        
+
         // 如果使用者有特地指定鄉鎮，則確保該地址符合該鄉鎮
         if (normQuery.includes("光復鄉") && !normA.includes("光復鄉")) return false;
         if (normQuery.includes("鳳林鎮") && !normA.includes("鳳林鎮")) return false;
@@ -249,9 +232,9 @@ function MapView({
           "Accept-Language": "zh-TW",
         }
       });
-      
+
       const osmData = await osmResponse.json();
-      
+
       if (osmData && osmData.length > 0) {
         const lat = parseFloat(osmData[0].lat);
         const lng = parseFloat(osmData[0].lon);
@@ -424,31 +407,34 @@ function MapView({
           </LayersControl.Overlay>
 
           <LayersControl.Overlay name="原住民保留地 (光復鄉範圍)">
-            {reserveGeojson && (
-              <GeoJSON
-                data={reserveGeojson}
-                style={{
-                  color: "#d97706",
-                  weight: 2,
-                  opacity: 0.8,
-                  fillColor: "#f59e0b",
-                  fillOpacity: 0.2,
-                }}
-                onEachFeature={(feature, layer) => {
-                  if (feature.properties) {
-                    const props = feature.properties;
-                    layer.bindPopup(
-                      `<div style="font-size: 14px; min-width: 150px;">
-                        <p style="margin: 0 0 5px 0; font-weight: 700; color: #b45309;">原住民保留地</p>
-                        <p style="margin: 0 0 3px 0;"><strong>縣市：</strong>${props["縣市名"] || ""}</p>
-                        <p style="margin: 0 0 3px 0;"><strong>鄉鎮：</strong>${props["鄉鎮名"] || ""}</p>
-                        <p style="margin: 0 0 3px 0;"><strong>段名：</strong>${props["地段名"] || ""}</p>
-                      </div>`
-                    );
-                  }
-                }}
-              />
-            )}
+            <FeatureGroup>
+              {reserveGeojson && (
+                <GeoJSON
+                  key={reserveGeojson.features ? reserveGeojson.features.length : "loaded"}
+                  data={reserveGeojson}
+                  style={{
+                    color: "#d97706",
+                    weight: 2,
+                    opacity: 0.8,
+                    fillColor: "#f59e0b",
+                    fillOpacity: 0.8,
+                  }}
+                  onEachFeature={(feature, layer) => {
+                    if (feature.properties) {
+                      const props = feature.properties;
+                      layer.bindPopup(
+                        `<div style="font-size: 14px; min-width: 150px;">
+                          <p style="margin: 0 0 5px 0; font-weight: 700; color: #b45309;">原住民保留地</p>
+                          <p style="margin: 0 0 3px 0;"><strong>縣市：</strong>${props["縣市名"] || ""}</p>
+                          <p style="margin: 0 0 3px 0;"><strong>鄉鎮：</strong>${props["鄉鎮名"] || ""}</p>
+                          <p style="margin: 0 0 3px 0;"><strong>段名：</strong>${props["地段名"] || ""}</p>
+                        </div>`
+                      );
+                    }
+                  }}
+                />
+              )}
+            </FeatureGroup>
           </LayersControl.Overlay>
 
 
@@ -493,121 +479,143 @@ function MapView({
         {reports
           .filter((report) => report.lat !== null && report.lng !== null)
           .map((report, index) => {
-            const isLatest = lastSubmittedLocation && 
-                             report.lat === lastSubmittedLocation.lat && 
-                             report.lng === lastSubmittedLocation.lng;
-                             
+            const isLatest = lastSubmittedLocation &&
+              report.lat === lastSubmittedLocation.lat &&
+              report.lng === lastSubmittedLocation.lng;
+
             return (
-              <Marker 
-                key={index} 
+              <Marker
+                key={index}
                 position={[report.lat!, report.lng!]}
                 icon={isLatest ? pulseIcon : defaultIcon}
                 zIndexOffset={isLatest ? 1000 : 0}
               >
-              <Popup>
-                <div
-                  style={{
-                    minWidth: "220px",
-                    maxWidth: "260px",
-                    fontSize: "14px",
-                    color: "#1f2937",
-                  }}
-                >
-                  <p
+                <Popup>
+                  <div
                     style={{
-                      margin: "0 0 10px 0",
-                      fontWeight: 700,
-                      fontSize: "16px",
-                      color: "#1f2d3d",
+                      minWidth: "220px",
+                      maxWidth: "260px",
+                      fontSize: "14px",
+                      color: "#1f2937",
                     }}
                   >
-                    填報資料摘要
-                  </p>
+                    <p
+                      style={{
+                        margin: "0 0 10px 0",
+                        fontWeight: 700,
+                        fontSize: "16px",
+                        color: "#1f2d3d",
+                      }}
+                    >
+                      填報資料摘要
+                    </p>
 
-                  <PopupRow label="資料日期：" value={report.reportDate} />
-                  <PopupRow label="填表人：" value={report.respondentType} />
-                  <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
-                  <PopupRow label="地址：" value={report.address || "未填"} />
-                  <PopupRow label="地點名稱：" value={report.placeName || "未填"} />
-                  <PopupRow label="地號：" value={report.landParcel || "未填"} />
-                  <PopupRow label="土地受災：" value={report.hasLandDamage} />
-                  <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
+                    <PopupRow label="資料日期：" value={report.reportDate} />
+                    <PopupRow label="填表人：" value={report.respondentType} />
+                    <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
+                    <PopupRow label="地址：" value={report.address || "未填"} />
+                    <PopupRow label="地點名稱：" value={report.placeName || "未填"} />
+                    <PopupRow label="地號：" value={report.landParcel || "未填"} />
+                    <PopupRow label="土地受災：" value={report.hasLandDamage} />
+                    <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
 
-                  {report.hasLandDamage === "是" && (
-                    <DetailBlock title="查看土地受災詳細資料">
-                      <PopupRow label="土地受災戶：" value={report.landVictimType} />
-                      <PopupRow
-                        label="土地泥沙高度："
-                        value={report.landMudHeight || "未填"}
-                      />
-                      <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
+                    {report.hasLandDamage === "是" && (
+                      <DetailBlock title="查看土地受災詳細資料">
+                        <PopupRow label="土地受災戶：" value={report.landVictimType} />
+                        <PopupRow
+                          label="土地泥沙高度："
+                          value={report.landMudHeight || "未填"}
+                        />
+                        <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
+                      </DetailBlock>
+                    )}
+
+                    {report.hasBuildingDamage === "是" && (
+                      <DetailBlock title="查看建物受災詳細資料">
+                        <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
+                        <PopupRow
+                          label="建物型態："
+                          value={
+                            report.buildingType === "其它" && report.buildingTypeOther
+                              ? `${report.buildingType}（${report.buildingTypeOther}）`
+                              : report.buildingType
+                          }
+                        />
+                        <PopupRow
+                          label="建物樓層數："
+                          value={report.buildingFloors ?? "未填"}
+                        />
+                        <PopupRow
+                          label="建物居住人數："
+                          value={report.buildingResidents ?? "未填"}
+                        />
+                        <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
+                        <PopupRow
+                          label="建物有無建造執照："
+                          value={report.hasBuildingPermit}
+                        />
+                        <PopupRow
+                          label="建物有無使用執照："
+                          value={report.hasUsePermit}
+                        />
+                        <PopupRow
+                          label="建物災時淹水高度："
+                          value={report.buildingFloodHeight || "未填"}
+                        />
+                        <PopupRow
+                          label="建物目前泥沙堆積高度："
+                          value={report.buildingMudHeight || "未填"}
+                        />
+                        <PopupRow
+                          label="建物受災程度："
+                          value={report.buildingDamageLevel}
+                        />
+                        <PopupRow
+                          label="建物受損面積："
+                          value={
+                            report.damagedAreaPing !== null
+                              ? `${report.damagedAreaPing} 坪`
+                              : "未填"
+                          }
+                        />
+                      </DetailBlock>
+                    )}
+
+                    <DetailBlock title="查看其他基本資料">
+                      <PopupRow label="權屬情況：" value={report.ownership} />
+                      <PopupRow label="用途：" value={report.usage} />
+                      <PopupRow label="是否原保地：" value={report.isIndigenousReserve} />
                     </DetailBlock>
-                  )}
 
-                  {report.hasBuildingDamage === "是" && (
-                    <DetailBlock title="查看建物受災詳細資料">
-                      <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
-                      <PopupRow
-                        label="建物型態："
-                        value={
-                          report.buildingType === "其它" && report.buildingTypeOther
-                            ? `${report.buildingType}（${report.buildingTypeOther}）`
-                            : report.buildingType
-                        }
-                      />
-                      <PopupRow
-                        label="建物樓層數："
-                        value={report.buildingFloors ?? "未填"}
-                      />
-                      <PopupRow
-                        label="建物居住人數："
-                        value={report.buildingResidents ?? "未填"}
-                      />
-                      <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
-                      <PopupRow
-                        label="建物有無建造執照："
-                        value={report.hasBuildingPermit}
-                      />
-                      <PopupRow
-                        label="建物有無使用執照："
-                        value={report.hasUsePermit}
-                      />
-                      <PopupRow
-                        label="建物災時淹水高度："
-                        value={report.buildingFloodHeight || "未填"}
-                      />
-                      <PopupRow
-                        label="建物目前泥沙堆積高度："
-                        value={report.buildingMudHeight || "未填"}
-                      />
-                      <PopupRow
-                        label="建物受災程度："
-                        value={report.buildingDamageLevel}
-                      />
-                      <PopupRow
-                        label="建物受損面積："
-                        value={
-                          report.damagedAreaPing !== null
-                            ? `${report.damagedAreaPing} 坪`
-                            : "未填"
-                        }
-                      />
+                    <DetailBlock title="查看座標資訊">
+                      <PopupRow label="緯度：" value={report.lat} />
+                      <PopupRow label="經度：" value={report.lng} />
                     </DetailBlock>
-                  )}
 
-                  <DetailBlock title="查看其他基本資料">
-                    <PopupRow label="權屬情況：" value={report.ownership} />
-                    <PopupRow label="用途：" value={report.usage} />
-                    <PopupRow label="是否原保地：" value={report.isIndigenousReserve} />
-                  </DetailBlock>
-
-                  <DetailBlock title="查看座標資訊">
-                    <PopupRow label="緯度：" value={report.lat} />
-                    <PopupRow label="經度：" value={report.lng} />
-                  </DetailBlock>
-                </div>
-              </Popup>
-            </Marker>
+                    {report.photos && report.photos.length > 0 && (
+                      <DetailBlock title="現場照片">
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
+                          {report.photos.map((photoUrl, idx) => (
+                            <a key={idx} href={photoUrl} target="_blank" rel="noopener noreferrer" style={{ display: "block" }}>
+                              <img
+                                src={photoUrl}
+                                alt={`現場照片 ${idx + 1}`}
+                                style={{
+                                  width: "100%",
+                                  maxHeight: "150px",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                  border: "1px solid #e5e7eb"
+                                }}
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </DetailBlock>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
             );
           })}
       </MapContainer>

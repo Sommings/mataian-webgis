@@ -42,6 +42,7 @@ type ReportRow = {
   building_mud_height: Report["buildingMudHeight"];
   building_damage_level: Report["buildingDamageLevel"];
   damaged_area_ping: number | null;
+  photos: string[] | null;
   created_at: string;
 };
 
@@ -78,6 +79,7 @@ function mapRowToReport(row: ReportRow): Report {
     buildingMudHeight: row.building_mud_height,
     buildingDamageLevel: row.building_damage_level,
     damagedAreaPing: row.damaged_area_ping,
+    photos: row.photos || [],
   };
 }
 
@@ -147,6 +149,7 @@ function App() {
       building_mud_height: newReport.buildingMudHeight,
       building_damage_level: newReport.buildingDamageLevel,
       damaged_area_ping: newReport.damagedAreaPing,
+      photos: newReport.photos,
     };
 
     const { data, error } = await supabase
@@ -198,31 +201,31 @@ function App() {
 
           <div
             style={{
-              marginTop: "16px",
+              marginTop: "12px",
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              padding: "8px 16px",
+              padding: "6px 14px",
               backgroundColor: "#e8f0fe",
               borderRadius: "20px",
               color: "#1e40af",
               fontWeight: 600,
-              fontSize: "15px",
+              fontSize: "14px",
               animation: isSuccessModalOpen ? "popIn 0.5s ease-out" : "none"
             }}
           >
             <span>社群共創貢獻進度：</span>
-            <span style={{ fontSize: "20px", color: "#2563eb", fontWeight: 800 }}>{reports.length}</span>
+            <span style={{ fontSize: "18px", color: "#2563eb", fontWeight: 800 }}>{reports.length}</span>
             <span>筆災情紀錄</span>
           </div>
 
           <p
             style={{
-              marginTop: "12px",
+              marginTop: "10px",
               marginBottom: "0",
               color: "#059669",
-              fontSize: "15px",
-              lineHeight: 1.6,
+              fontSize: "14px",
+              lineHeight: 1.5,
               textAlign: "center",
               fontWeight: 600,
             }}
@@ -232,11 +235,11 @@ function App() {
 
           <p
             style={{
-              marginTop: "10px",
-              marginBottom: "8px",
+              marginTop: "6px",
+              marginBottom: "4px",
               color: "#64748b",
-              fontSize: "16px",
-              lineHeight: 1.7,
+              fontSize: "14px",
+              lineHeight: 1.5,
               textAlign: "center",
             }}
           >

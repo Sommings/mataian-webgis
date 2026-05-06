@@ -5,6 +5,8 @@ export type TribeName =
   | "Fata'an（馬太鞍）"
   | "Atomo（阿陶莫）"
   | "Tafalong（太巴塱）"
+  | "Fahol（馬佛）"
+  | "Kalotong（加里洞）"
   | "無";
 
 export type OwnershipType = "" | "公有" | "私有";
@@ -78,6 +80,7 @@ export type Report = {
   buildingMudHeight: HeightLevel;
   buildingDamageLevel: BuildingDamageLevel;
   damagedAreaPing: number | null;
+  photos: string[];
 };
 
 export const emptyReport: Report = {
@@ -112,4 +115,5 @@ export const emptyReport: Report = {
   buildingMudHeight: "",
   buildingDamageLevel: "",
   damagedAreaPing: null,
+  photos: [],
 };

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, CSSProperties } from "react";
 import { emptyReport, type Report } from "../types/report";
+import ConsentModal from "./ConsentModal";
+import { supabase } from "../lib/supabase";
 
 type SelectedLocation = {
   lat: number;
@@ -33,6 +35,10 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     reportDate: getCurrentDateTimeString(),
   });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isConsentChecked, setIsConsentChecked] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (selectedLocation) {
@@ -287,8 +293,43 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
     if (!validateLandStep()) return;
     if (!validateBuildingStep()) return;
 
+    if (!isConsentChecked) {
+      alert("請閱讀並同意個人資料蒐集聲明");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const cleanedReport = sanitizeReportBeforeSubmit(formData);
+      const uploadedPhotos: string[] = [];
+      for (const file of selectedFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("disaster_photos")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error("圖片上傳失敗：", uploadError);
+          alert(`圖片 ${file.name} 上傳失敗，請稍後再試。`);
+          setIsSubmitting(false);
+          return;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from("disaster_photos")
+          .getPublicUrl(filePath);
+
+        uploadedPhotos.push(publicUrlData.publicUrl);
+      }
+
+      const cleanedReport = sanitizeReportBeforeSubmit({
+        ...formData,
+        photos: uploadedPhotos,
+      });
+
       await onAddReport(cleanedReport);
 
       setFormData({
@@ -297,11 +338,31 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
         lat: selectedLocation ? selectedLocation.lat : null,
         lng: selectedLocation ? selectedLocation.lng : null,
       });
+      setSelectedFiles([]);
       setCurrentStepIndex(0);
+      setIsConsentChecked(false);
     } catch (error) {
       console.error("表單送出失敗：", error);
       alert("送出失敗，請查看 Console");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      if (filesArray.length + selectedFiles.length > 3) {
+        alert("最多只能上傳三張照片");
+        return;
+      }
+      setSelectedFiles((prev) => [...prev, ...filesArray].slice(0, 3));
+    }
+    e.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const fieldStyle: CSSProperties = {
@@ -385,31 +446,6 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
         ))}
       </div>
 
-      <div
-        style={{
-          marginBottom: "18px",
-          padding: "12px 14px",
-          borderRadius: "12px",
-          backgroundColor: "#f6f9fc",
-          border: "1px solid #e3ebf3",
-        }}
-      >
-        <div
-          style={{
-            fontWeight: 700,
-            color: "#1f2d3d",
-            marginBottom: "6px",
-          }}
-        >
-          目前選點座標
-        </div>
-        <div style={{ fontSize: "14px", color: "#4b5c6b" }}>
-          緯度：{selectedLocation ? selectedLocation.lat : "尚未選擇"}
-        </div>
-        <div style={{ fontSize: "14px", color: "#4b5c6b", marginTop: "4px" }}>
-          經度：{selectedLocation ? selectedLocation.lng : "尚未選擇"}
-        </div>
-      </div>
 
       {currentStep === "basic" && (
         <div>
@@ -461,6 +497,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
                 <option value="Fata'an（馬太鞍）">Fata'an（馬太鞍）</option>
                 <option value="Atomo（阿陶莫）">Atomo（阿陶莫）</option>
                 <option value="Tafalong（太巴塱）">Tafalong（太巴塱）</option>
+                <option value="Fahol（馬佛）">Fahol（馬佛）</option>
+                <option value="Kalotong（加里洞）">Kalotong（加里洞）</option>
                 <option value="無">無</option>
               </select>
             </label>
@@ -867,6 +905,96 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
         </div>
       )}
 
+      {isLastStep && (
+        <div style={{
+          marginTop: "24px",
+          padding: "16px",
+          backgroundColor: "#f8fafc",
+          border: "1px solid #e2e8f0",
+          borderRadius: "12px",
+        }}>
+          <div style={{ marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid #e2e8f0" }}>
+            <div style={{ fontWeight: 700, marginBottom: "8px", color: "#1e293b", fontSize: "15px" }}>上傳災情照片（最多 3 張）</div>
+            <p style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#64748b" }}>提供現場照片能幫助我們更精準地掌握災情狀況。</p>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              disabled={selectedFiles.length >= 3 || isSubmitting}
+              style={{
+                display: "block",
+                marginBottom: "10px",
+                fontSize: "14px"
+              }}
+            />
+            {selectedFiles.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {selectedFiles.map((file, index) => (
+                  <div key={index} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", color: "#334155" }}>
+                    <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      disabled={isSubmitting}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#ef4444",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        fontWeight: 600
+                      }}
+                    >
+                      移除
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: "12px", fontSize: "14px", color: "#475569" }}>
+            <div style={{ fontWeight: 700, marginBottom: "8px", color: "#1e293b" }}>[個資告知摘要]</div>
+            本系統蒐集您填寫之地址、座標、災情內容等資料，僅供災情調查、空間分析、研究整理及內部管理使用。
+          </div>
+          <label style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            fontSize: "15px",
+            fontWeight: 600,
+            color: "#0f172a"
+          }}>
+            <input
+              type="checkbox"
+              checked={isConsentChecked}
+              onChange={(e) => setIsConsentChecked(e.target.checked)}
+              style={{ width: "18px", height: "18px", cursor: "pointer" }}
+            />
+            我已閱讀並同意個人資料蒐集、處理及利用說明
+          </label>
+          <div style={{ marginTop: "8px", marginLeft: "26px" }}>
+            <button
+              type="button"
+              onClick={() => setIsConsentModalOpen(true)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "#2563eb",
+                textDecoration: "underline",
+                cursor: "pointer",
+                fontSize: "14px"
+              }}
+            >
+              [查看完整聲明]
+            </button>
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -897,21 +1025,28 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
         <button
           type="button"
           onClick={handleNextStep}
+          disabled={(isLastStep && !isConsentChecked) || isSubmitting}
           style={{
             flex: 1,
             padding: "12px 16px",
             border: "none",
             borderRadius: "12px",
-            backgroundColor: "#2563eb",
+            backgroundColor: ((isLastStep && !isConsentChecked) || isSubmitting) ? "#94a3b8" : "#2563eb",
             color: "#ffffff",
             fontSize: "15px",
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: ((isLastStep && !isConsentChecked) || isSubmitting) ? "not-allowed" : "pointer",
+            opacity: ((isLastStep && !isConsentChecked) || isSubmitting) ? 0.7 : 1,
           }}
         >
-          {isLastStep ? "送出填報" : "下一步"}
+          {isSubmitting ? "上傳中..." : isLastStep ? "送出填報" : "下一步"}
         </button>
       </div>
+
+      <ConsentModal 
+        isOpen={isConsentModalOpen} 
+        onClose={() => setIsConsentModalOpen(false)} 
+      />
     </div>
   );
 }

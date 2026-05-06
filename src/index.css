@@ -143,29 +143,81 @@ code {
   animation: pulseEffect 1.5s infinite;
 }
 
+/* Custom Map Pin Styles */
+.custom-map-pin-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.custom-map-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  position: relative;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.custom-map-pin::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 0 2px rgba(0,0,0,0.2);
+}
+
+.custom-map-pin-default {
+  background-color: #3b82f6;
+  border: 2px solid #ffffff;
+}
+
+.custom-map-pin-pulse {
+  background-color: #059669;
+  border: 2px solid #ffffff;
+  animation: dropAndBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), customPulse 2s infinite;
+}
+
+@keyframes customPulse {
+  0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(5, 150, 105, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+}
+
+.custom-map-pin-bounce {
+  background-color: #f59e0b;
+  border: 2px solid #ffffff;
+  animation: dropAndBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 /* --- App Layout Styles (RWD) --- */
 .app-wrapper {
   min-height: 100vh;
   background: linear-gradient(180deg, #eef4fb 0%, #f7f9fc 100%);
-  padding: 24px;
+  padding: 12px;
   box-sizing: border-box;
 }
 
 .app-container {
   max-width: 95vw;
   margin: 0 auto;
-  padding: 24px;
+  padding: 8px 24px;
 }
 
 .app-header {
-  margin-bottom: 28px;
-  padding: 20px 12px 12px;
+  margin-bottom: 16px;
+  padding: 4px 12px 8px;
   text-align: center;
 }
 
 .app-title {
   margin: 0;
-  font-size: 38px;
+  font-size: 32px;
   line-height: 1.15;
   color: #1f2d3d;
   font-weight: 800;
