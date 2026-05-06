@@ -225,10 +225,11 @@ function App() {
             style={{
               marginTop: "6px",
               marginBottom: "4px",
-              color: "#64748b",
+              color: "#059669",
               fontSize: "14px",
               lineHeight: 1.5,
               textAlign: "center",
+              fontWeight: 600,
             }}
           >
             左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
