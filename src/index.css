@@ -197,16 +197,24 @@ code {
 
 /* --- App Layout Styles (RWD) --- */
 .app-wrapper {
-  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, #eef4fb 0%, #f7f9fc 100%);
   padding: 12px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .app-container {
   max-width: 95vw;
+  width: 100%;
   margin: 0 auto;
   padding: 8px 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .app-header {
@@ -228,7 +236,9 @@ code {
   display: grid;
   grid-template-columns: 420px 1fr;
   gap: 20px;
-  align-items: start;
+  flex: 1;
+  overflow: hidden;
+  margin-bottom: 8px;
 }
 
 .app-form-panel {
@@ -236,6 +246,19 @@ code {
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.app-form-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-form-panel::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 10px;
 }
 
 .app-map-panel {
@@ -243,39 +266,47 @@ code {
   border-radius: 18px;
   padding: 18px;
   box-shadow: 0 10px 30px rgba(31, 45, 61, 0.08);
-  min-height: 540px;
-  height: calc(100vh - 48px);
-  position: sticky;
-  top: 24px;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* --- Mobile Responsive (RWD) --- */
 @media (max-width: 980px) {
   .app-wrapper {
-    padding: 12px 8px; /* 縮小最外層手機版邊距 */
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    padding: 12px 8px;
   }
 
   .app-container {
     max-width: 100vw;
-    padding: 0; /* 移除內層手機版邊距，爭取空間 */
+    height: auto;
+    overflow: visible;
+    padding: 0;
   }
 
   .app-title {
-    font-size: 26px; /* 手機版縮小標題字體 */
+    font-size: 26px;
   }
 
   .app-content-grid {
-    grid-template-columns: 1fr; /* 改為上下堆疊排版 */
+    grid-template-columns: 1fr;
     gap: 16px;
+    height: auto;
+    overflow: visible;
+    flex: none;
   }
 
   .app-form-panel {
-    position: static; /* 手機版取消滾動黏貼 (sticky) */
+    height: auto;
+    overflow: visible;
     padding: 16px;
   }
 
   .app-map-panel {
-    min-height: 480px; /* 手機版地圖高度適中 */
+    min-height: 480px;
+    height: 480px;
     padding: 12px;
   }
 }
