@@ -250,20 +250,6 @@ function App() {
               onAddReport={handleAddReport}
               selectedLocation={selectedLocation}
             />
-            
-            <MessageBoard />
-
-            <footer style={{
-              marginTop: "40px",
-              paddingTop: "20px",
-              borderTop: "1px solid #e2e8f0",
-              textAlign: "center",
-              color: "#64748b",
-              fontSize: "14px",
-              paddingBottom: "10px"
-            }}>
-              開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 600 }}>政大國土服務團</a>
-            </footer>
           </div>
 
           <div className="app-map-panel">
@@ -276,13 +262,27 @@ function App() {
           </div>
         </div>
 
+        <MessageBoard />
+
+        <footer style={{
+          marginTop: "40px",
+          paddingTop: "20px",
+          borderTop: "1px solid #e2e8f0",
+          textAlign: "center",
+          color: "#64748b",
+          fontSize: "14px",
+          paddingBottom: "10px"
+        }}>
+          開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 600 }}>政大國土服務團</a>
+        </footer>
+      </div>
+
       <SuccessModal
         isOpen={isSuccessModalOpen}
         onClose={() => setIsSuccessModalOpen(false)}
         reportCount={reports.length}
       />
     </div>
-  </div>
   );
 }
 
