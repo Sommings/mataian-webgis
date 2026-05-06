@@ -53,7 +53,6 @@ export type Report = {
   respondentType: RespondentType;
   tribeName: TribeName;
   address: string;
-  placeName: string;
   lng: number | null;
   lat: number | null;
   landParcel: string;
@@ -88,7 +87,6 @@ export const emptyReport: Report = {
   respondentType: "",
   tribeName: "",
   address: "",
-  placeName: "",
   lng: null,
   lat: null,
   landParcel: "",

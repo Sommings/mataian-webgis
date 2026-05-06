@@ -561,18 +561,7 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
               />
             </label>
 
-            <label style={labelStyle}>
-              地點名稱
-              <input
-                style={fieldStyle}
-                type="text"
-                name="placeName"
-                value={formData.placeName}
-                onChange={handleChange}
-                placeholder="請輸入地點名稱（非必填）"
-                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
-              />
-            </label>
+
 
 
 

@@ -18,7 +18,6 @@ type ReportRow = {
   respondent_type: Report["respondentType"];
   tribe_name: Report["tribeName"];
   address: string;
-  place_name: string;
   lng: number;
   lat: number;
   land_parcel: string;
@@ -52,7 +51,6 @@ function mapRowToReport(row: ReportRow): Report {
     respondentType: row.respondent_type,
     tribeName: row.tribe_name,
     address: row.address,
-    placeName: row.place_name,
     lng: row.lng,
     lat: row.lat,
     landParcel: row.land_parcel,
@@ -122,7 +120,6 @@ function App() {
       respondent_type: newReport.respondentType,
       tribe_name: newReport.tribeName,
       address: newReport.address,
-      place_name: newReport.placeName,
       lng: newReport.lng,
       lat: newReport.lat,
       land_parcel: newReport.landParcel,
@@ -165,14 +162,14 @@ function App() {
 
     const insertedReport = mapRowToReport(data as ReportRow);
     setReports((prev) => [insertedReport, ...prev]);
-    
+
     confetti({
       particleCount: 150,
       spread: 70,
       origin: { y: 0.6 },
       colors: ['#2563eb', '#3b82f6', '#60a5fa', '#f59e0b', '#10b981']
     });
-    
+
     if (insertedReport.lat !== null && insertedReport.lng !== null) {
       setLastSubmittedLocation({ lat: insertedReport.lat, lng: insertedReport.lng });
     }
@@ -219,17 +216,14 @@ function App() {
             <span>筆災情紀錄</span>
           </div>
 
-
-
           <p
             style={{
               marginTop: "6px",
               marginBottom: "4px",
-              color: "#059669",
+              color: "#64748b",
               fontSize: "14px",
               lineHeight: 1.5,
               textAlign: "center",
-              fontWeight: 600,
             }}
           >
             左側填寫受災資料，右側地圖點選位置並查看既有填報點位。
@@ -267,7 +261,7 @@ function App() {
             />
           </div>
         </div>
-        
+
         <MessageBoard />
 
         <footer style={{
@@ -282,11 +276,11 @@ function App() {
           開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 600 }}>政大國土服務團</a>
         </footer>
       </div>
-      
-      <SuccessModal 
-        isOpen={isSuccessModalOpen} 
-        onClose={() => setIsSuccessModalOpen(false)} 
-        reportCount={reports.length} 
+
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        reportCount={reports.length}
       />
     </div>
   );

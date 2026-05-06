@@ -515,7 +515,7 @@ function MapView({
                     <PopupRow label="填表人：" value={report.respondentType} />
                     <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
                     <PopupRow label="地址：" value={report.address || "未填"} />
-                    <PopupRow label="地點名稱：" value={report.placeName || "未填"} />
+
                     <PopupRow label="地號：" value={report.landParcel || "未填"} />
                     <PopupRow label="土地受災：" value={report.hasLandDamage} />
                     <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
