@@ -196,7 +196,7 @@ function App() {
           </p>
 
           <h1 className="app-title">
-            花蓮光復鄉 馬太鞍災情填報地圖
+            花蓮馬太鞍溪堰塞湖災害參與式地圖
           </h1>
 
           <div
@@ -219,19 +219,7 @@ function App() {
             <span>筆災情紀錄</span>
           </div>
 
-          <p
-            style={{
-              marginTop: "10px",
-              marginBottom: "0",
-              color: "#059669",
-              fontSize: "14px",
-              lineHeight: 1.5,
-              textAlign: "center",
-              fontWeight: 600,
-            }}
-          >
-            🌱 您的每一筆標註，都是幫助馬太鞍精準掌握災情、加速重建的關鍵力量！
-          </p>
+
 
           <p
             style={{
