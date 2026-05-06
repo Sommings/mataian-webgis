@@ -73,9 +73,7 @@ function ReportList({ reports }: ReportListProps) {
             <p style={{ margin: "0 0 4px 0", color: "#475569" }}>
               地址：{report.address || "未填"}
             </p>
-            <p style={{ margin: "0 0 4px 0", color: "#475569" }}>
-              地點名稱：{report.placeName || "未填"}
-            </p>
+
             <p style={{ margin: "0 0 4px 0", color: "#475569" }}>
               地號：{report.landParcel || "未填"}
             </p>
