@@ -282,7 +282,7 @@ function MapView({
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+      <div className="map-search-bar" style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
         <input
           type="text"
           value={searchQuery}
@@ -291,7 +291,8 @@ function MapView({
           placeholder="輸入地址搜尋..."
           style={{
             flex: 1,
-            padding: "8px 12px",
+            minWidth: "200px",
+            padding: "10px 12px",
             borderRadius: "8px",
             border: "1px solid #d1d5db",
             fontSize: "14px",
@@ -301,7 +302,8 @@ function MapView({
           onClick={handleSearch}
           disabled={isSearching}
           style={{
-            padding: "8px 16px",
+            flex: "0 0 auto",
+            padding: "10px 20px",
             borderRadius: "8px",
             border: "none",
             backgroundColor: "#3b82f6",
@@ -311,7 +313,7 @@ function MapView({
             opacity: isSearching ? 0.7 : 1,
           }}
         >
-          {isSearching ? "搜尋中..." : "搜尋"}
+          {isSearching ? "搜尋中..." : "搜尋地址"}
         </button>
       </div>
 
@@ -319,7 +321,8 @@ function MapView({
         center={defaultCenter}
         zoom={13}
         style={{
-          height: "520px",
+          height: "100%",
+          minHeight: "450px",
           width: "100%",
           borderRadius: "16px",
           overflow: "hidden",
