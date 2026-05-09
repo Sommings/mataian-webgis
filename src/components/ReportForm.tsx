@@ -12,7 +12,6 @@ type SelectedLocation = {
 type ReportFormProps = {
   onAddReport: (report: Report) => Promise<void>;
   selectedLocation: SelectedLocation;
-  onSwitchToMap: () => void;
 };
 
 type StepKey = "basic" | "land" | "building";
@@ -30,7 +29,7 @@ const getCurrentDateTimeString = () => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 };
 
-function ReportForm({ onAddReport, selectedLocation, onSwitchToMap }: ReportFormProps) {
+function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
   const [formData, setFormData] = useState<Report>({
     ...emptyReport,
     reportDate: getCurrentDateTimeString(),
@@ -490,28 +489,6 @@ function ReportForm({ onAddReport, selectedLocation, onSwitchToMap }: ReportForm
                 />
               </label>
             </div>
-
-            <button
-              type="button"
-              onClick={onSwitchToMap}
-              style={{
-                width: "100%",
-                padding: "10px",
-                backgroundColor: "#e8f0fe",
-                color: "#2563eb",
-                border: "1px dashed #3b82f6",
-                borderRadius: "10px",
-                fontSize: "14px",
-                fontWeight: 700,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "6px"
-              }}
-            >
-              📍 切換至地圖選取位置
-            </button>
 
             <label style={labelStyle}>
               資料日期與時間

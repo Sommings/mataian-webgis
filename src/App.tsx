@@ -87,7 +87,6 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [lastSubmittedLocation, setLastSubmittedLocation] = useState<SelectedLocation>(null);
-  const [activeTab, setActiveTab] = useState<"form" | "map">("form");
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -243,28 +242,11 @@ function App() {
           )}
         </div>
 
-        {/* Mobile Tab Switcher */}
-        <div className="mobile-tab-switcher">
-          <button
-            className={activeTab === "form" ? "active" : ""}
-            onClick={() => setActiveTab("form")}
-          >
-            填寫表單
-          </button>
-          <button
-            className={activeTab === "map" ? "active" : ""}
-            onClick={() => setActiveTab("map")}
-          >
-            查看地圖
-          </button>
-        </div>
-
-        <div className={`app-content-grid ${activeTab === "form" ? "show-form" : "show-map"}`}>
+        <div className="app-content-grid">
           <div className="app-form-panel">
             <ReportForm
               onAddReport={handleAddReport}
               selectedLocation={selectedLocation}
-              onSwitchToMap={() => setActiveTab("map")}
             />
           </div>
 
