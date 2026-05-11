@@ -163,12 +163,16 @@ function App() {
     const insertedReport = mapRowToReport(data as ReportRow);
     setReports((prev) => [insertedReport, ...prev]);
 
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#2563eb', '#3b82f6', '#60a5fa', '#f59e0b', '#10b981']
-    });
+    try {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#2563eb', '#3b82f6', '#60a5fa', '#f59e0b', '#10b981']
+      });
+    } catch (e) {
+      console.warn("Confetti effect failed:", e);
+    }
 
     if (insertedReport.lat !== null && insertedReport.lng !== null) {
       setLastSubmittedLocation({ lat: insertedReport.lat, lng: insertedReport.lng });
@@ -282,7 +286,10 @@ function App() {
 
       <SuccessModal
         isOpen={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          setMobileView('map');
+        }}
         reportCount={reports.length}
       />
 

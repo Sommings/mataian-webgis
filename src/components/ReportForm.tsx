@@ -98,8 +98,8 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
   };
 
   const validateBasicStep = () => {
-    if (!selectedLocation) {
-      alert("請先在地圖上點選位置");
+    if (formData.lat === null || formData.lng === null) {
+      alert("請先在地圖上點選位置，或手動輸入經緯度");
       return false;
     }
 
