@@ -33,6 +33,7 @@ body,
   min-height: 100svh;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 body {
@@ -261,6 +262,12 @@ code {
   min-height: 600px;
 }
 
+.lat-lng-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 /* --- Mobile Responsive (RWD) --- */
 @media (max-width: 980px) {
   .app-wrapper {
@@ -321,5 +328,9 @@ code {
 
   input, select, button {
     font-size: 16px !important;
+  }
+
+  .lat-lng-grid {
+    grid-template-columns: 1fr;
   }
 }

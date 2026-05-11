@@ -457,10 +457,10 @@ function ReportForm({ onAddReport, selectedLocation }: ReportFormProps) {
 
           <div style={{ display: "grid", gap: "14px" }}>
             <p style={{ margin: "0 0 4px 0", fontSize: "13px", color: "#64748b" }}>
-              請先在右側地圖點選位置，系統會自動帶入經緯度。
+              請先在地圖點選位置，系統會自動帶入經緯度。
             </p>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+            <div className="lat-lng-grid">
               <label style={labelStyle}>
                 經度
                 <input
