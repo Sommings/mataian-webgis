@@ -321,8 +321,8 @@ function MapView({
         center={defaultCenter}
         zoom={13}
         style={{
-          height: "100%",
-          minHeight: "450px",
+          flex: 1,
+          minHeight: 0,
           width: "100%",
           borderRadius: "16px",
           overflow: "hidden",
