@@ -293,9 +293,8 @@ code {
   }
 
   .app-map-panel {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    position: relative;
+    z-index: 1;
     height: 45vh;
     min-height: 320px;
     padding: 0;
