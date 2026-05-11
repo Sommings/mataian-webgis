@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Map, FileText } from "lucide-react";
 import ReportForm from "./components/ReportForm";
 import MapView from "./components/MapView";
 import type { Report } from "./types/report";
@@ -82,6 +83,7 @@ function mapRowToReport(row: ReportRow): Report {
 }
 
 function App() {
+  const [mobileView, setMobileView] = useState<'map' | 'form'>('map');
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation>(null);
   const [loading, setLoading] = useState(true);
@@ -242,7 +244,7 @@ function App() {
           )}
         </div>
 
-        <div className="app-content-grid">
+        <div className={`app-content-grid show-${mobileView}`}>
           <div className="app-form-panel">
             <ReportForm
               onAddReport={handleAddReport}
@@ -254,7 +256,10 @@ function App() {
             <MapView
               reports={reports}
               selectedLocation={selectedLocation}
-              onSelectLocation={setSelectedLocation}
+              onSelectLocation={(loc) => {
+                setSelectedLocation(loc);
+                setMobileView('form');
+              }}
               lastSubmittedLocation={lastSubmittedLocation}
             />
           </div>
@@ -280,6 +285,23 @@ function App() {
         onClose={() => setIsSuccessModalOpen(false)}
         reportCount={reports.length}
       />
+
+      <div className="mobile-bottom-nav">
+        <button
+          className={mobileView === 'map' ? 'active' : ''}
+          onClick={() => setMobileView('map')}
+        >
+          <Map size={20} />
+          <span>地圖檢視</span>
+        </button>
+        <button
+          className={mobileView === 'form' ? 'active' : ''}
+          onClick={() => setMobileView('form')}
+        >
+          <FileText size={20} />
+          <span>填報災情</span>
+        </button>
+      </div>
     </div>
   );
 }
