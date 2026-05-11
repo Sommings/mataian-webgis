@@ -16,13 +16,11 @@ export default function SuccessModal({ isOpen, onClose, reportCount }: SuccessMo
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
-    backdropFilter: "blur(4px)",
+    backgroundColor: "rgba(15, 23, 42, 0.75)", // Slightly darker since we removed the blur
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 9999,
-    animation: "fadeIn 0.3s ease-out",
+    zIndex: 999999, // Super high z-index
   };
 
   const modalStyle: CSSProperties = {
