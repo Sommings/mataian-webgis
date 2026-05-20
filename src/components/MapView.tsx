@@ -13,6 +13,7 @@ import {
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
+import { Locate } from "lucide-react";
 
 type SelectedLocation = {
   lat: number;
@@ -146,6 +147,7 @@ function MapView({
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
   const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
   const [lightboxData, setLightboxData] = useState<{ photos: string[]; index: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
@@ -158,6 +160,40 @@ function MapView({
       .then((data) => setAddressDb(data))
       .catch((err) => console.error("載入本地門牌資料庫失敗：", err));
   }, []);
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      alert("您的瀏覽器不支援定位功能。");
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setMapCenter([latitude, longitude]);
+        onSelectLocation({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        let errMsg = "無法取得您的位置。";
+        if (error.code === error.PERMISSION_DENIED) {
+          errMsg = "請允許瀏覽器存取您的位置資訊。";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errMsg = "位置資訊不可用。";
+        } else if (error.code === error.TIMEOUT) {
+          errMsg = "定位逾時，請稍後再試。";
+        }
+        alert(errMsg);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -300,7 +336,7 @@ function MapView({
         />
         <button
           onClick={handleSearch}
-          disabled={isSearching}
+          disabled={isSearching || isLocating}
           style={{
             flex: "0 0 auto",
             padding: "10px 20px",
@@ -309,11 +345,43 @@ function MapView({
             backgroundColor: "#3b82f6",
             color: "white",
             fontWeight: 600,
-            cursor: isSearching ? "not-allowed" : "pointer",
-            opacity: isSearching ? 0.7 : 1,
+            cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
+            opacity: (isSearching || isLocating) ? 0.7 : 1,
           }}
         >
           {isSearching ? "搜尋中..." : "搜尋地址"}
+        </button>
+        <button
+          onClick={handleLocate}
+          disabled={isSearching || isLocating}
+          style={{
+            flex: "0 0 auto",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            border: "1px solid #3b82f6",
+            backgroundColor: "white",
+            color: "#3b82f6",
+            fontWeight: 600,
+            cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
+            opacity: (isSearching || isLocating) ? 0.7 : 1,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "all 0.2s",
+          }}
+          onMouseOver={(e) => {
+            if (!isSearching && !isLocating) {
+              e.currentTarget.style.backgroundColor = "#eff6ff";
+            }
+          }}
+          onMouseOut={(e) => {
+            if (!isSearching && !isLocating) {
+              e.currentTarget.style.backgroundColor = "white";
+            }
+          }}
+        >
+          <Locate size={18} />
+          {isLocating ? "定位中..." : "定位目前位置"}
         </button>
       </div>
 
