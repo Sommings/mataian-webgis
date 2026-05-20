@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -182,13 +182,19 @@ const SECTION_NAMES: { [key: string]: string } = {
 function ZoomTracker({
   onZoomChange,
   onOverlayToggle,
+  onBoundsChange,
 }: {
   onZoomChange: (zoom: number) => void;
   onOverlayToggle: (name: string, enabled: boolean) => void;
+  onBoundsChange: (bounds: L.LatLngBounds) => void;
 }) {
   const map = useMapEvents({
     zoomend() {
       onZoomChange(map.getZoom());
+      onBoundsChange(map.getBounds());
+    },
+    moveend() {
+      onBoundsChange(map.getBounds());
     },
     overlayadd(e) {
       onOverlayToggle(e.name, true);
@@ -200,9 +206,34 @@ function ZoomTracker({
 
   useEffect(() => {
     onZoomChange(map.getZoom());
-  }, [map, onZoomChange]);
+    onBoundsChange(map.getBounds());
+  }, [map, onZoomChange, onBoundsChange]);
 
   return null;
+}
+
+// 計算單個 GeoJSON feature 的 bounding box [minLng, minLat, maxLng, maxLat]
+function getFeatureBBox(feature: any): [number, number, number, number] {
+  if (feature.bbox) return feature.bbox;
+  
+  let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+  const processCoords = (coords: any) => {
+    if (typeof coords[0] === 'number') {
+      const [lng, lat] = coords;
+      if (lng < minLng) minLng = lng;
+      if (lat < minLat) minLat = lat;
+      if (lng > maxLng) maxLng = lng;
+      if (lat > maxLat) maxLat = lat;
+    } else {
+      for (let i = 0; i < coords.length; i++) {
+        processCoords(coords[i]);
+      }
+    }
+  };
+  
+  processCoords(feature.geometry.coordinates);
+  feature.bbox = [minLng, minLat, maxLng, maxLat];
+  return feature.bbox;
 }
 
 const normalizeAddress = (addr: string) => {
@@ -230,6 +261,36 @@ function MapView({
   const [isLocating, setIsLocating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [cadastralEnabled, setCadastralEnabled] = useState(false);
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+
+  // 篩選與目前地圖範圍相交的地籍圖特徵 (zoomLevel >= 15 才做，避免效能耗損)
+  const filteredCadastralGeojson = useMemo(() => {
+    if (!cadastralGeojson || !cadastralGeojson.features || !mapBounds || zoomLevel < 15) {
+      return { type: "FeatureCollection" as const, features: [] };
+    }
+
+    const west = mapBounds.getWest();
+    const south = mapBounds.getSouth();
+    const east = mapBounds.getEast();
+    const north = mapBounds.getNorth();
+
+    // 進行高效邊界相交過濾
+    const filtered = cadastralGeojson.features.filter((feature: any) => {
+      if (!feature.geometry) return false;
+      const [minLng, minLat, maxLng, maxLat] = getFeatureBBox(feature);
+      return (
+        minLng <= east &&
+        maxLng >= west &&
+        minLat <= north &&
+        maxLat >= south
+      );
+    });
+
+    return {
+      type: "FeatureCollection" as const,
+      features: filtered
+    };
+  }, [cadastralGeojson, mapBounds, zoomLevel]);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
@@ -503,6 +564,7 @@ function MapView({
         <MapContainer
         center={defaultCenter}
         zoom={13}
+        preferCanvas={true}
         style={{
           flex: 1,
           minHeight: 0,
@@ -626,10 +688,18 @@ function MapView({
 
           <LayersControl.Overlay name="107年光復鄉地籍圖">
             <FeatureGroup>
-              {cadastralGeojson && zoomLevel >= 15 && (
+              {cadastralGeojson && zoomLevel >= 15 && filteredCadastralGeojson.features.length > 0 && (
                 <GeoJSON
-                  key={cadastralGeojson.features ? cadastralGeojson.features.length : "loaded-cadastral"}
-                  data={cadastralGeojson}
+                  key={`cadastral-z${zoomLevel}-f${filteredCadastralGeojson.features.length}-${
+                    filteredCadastralGeojson.features[0]?.properties 
+                      ? `${filteredCadastralGeojson.features[0].properties["地段代碼"] || filteredCadastralGeojson.features[0].properties["段號_SCNO"] || ""}-${filteredCadastralGeojson.features[0].properties["母號"] || ""}-${filteredCadastralGeojson.features[0].properties["子號"] || ""}` 
+                      : "empty"
+                  }-${
+                    filteredCadastralGeojson.features[filteredCadastralGeojson.features.length - 1]?.properties 
+                      ? `${filteredCadastralGeojson.features[filteredCadastralGeojson.features.length - 1].properties["地段代碼"] || filteredCadastralGeojson.features[filteredCadastralGeojson.features.length - 1].properties["段號_SCNO"] || ""}-${filteredCadastralGeojson.features[filteredCadastralGeojson.features.length - 1].properties["母號"] || ""}-${filteredCadastralGeojson.features[filteredCadastralGeojson.features.length - 1].properties["子號"] || ""}` 
+                      : "empty"
+                  }`}
+                  data={filteredCadastralGeojson}
                   style={{
                     color: "#2563eb",
                     weight: 1,
@@ -697,6 +767,7 @@ function MapView({
         <LocationPicker onSelectLocation={onSelectLocation} />
         <ZoomTracker
           onZoomChange={setZoomLevel}
+          onBoundsChange={setMapBounds}
           onOverlayToggle={(name, enabled) => {
             if (name === "107年光復鄉地籍圖") {
               setCadastralEnabled(enabled);
