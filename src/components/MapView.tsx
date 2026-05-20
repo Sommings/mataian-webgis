@@ -126,6 +126,85 @@ function DetailBlock({
   );
 }
 
+const SECTION_NAMES: { [key: string]: string } = {
+  '0201': '大安段',
+  '0202': '大平段',
+  '0223': '馬遠段',
+  '0224': '紅葉段',
+  '0226': '鳳光段',
+  '0227': '鳳明段',
+  '0239': '東富段',
+  '0240': '太巴塱段',
+  '0241': '溪州段',
+  '0242': '達莫段',
+  '0243': '砂荖段',
+  '0244': '西富段',
+  '0245': '馬佛段',
+  '0246': '林榮段',
+  '0248': '北林段',
+  '0249': '大榮段',
+  '0250': '鳳信段',
+  '0251': '南平段',
+  '0252': '鳳義段',
+  '0253': '鳳凰段',
+  '0277': '大馬段',
+  '0278': '綜開段',
+  '0280': '水廣段',
+  '0281': '新莊段',
+  '0282': '大全段',
+  '0283': '鳳榮段',
+  '0284': '森榮段',
+  '0285': '長橋段',
+  '0286': '中心埔段',
+  '0287': '大豐段',
+  '0288': '大和段',
+  '0289': '大興段',
+  '0290': '富豐段',
+  '0291': '西寶段',
+  '0292': '中興段',
+  '0293': '箭瑛段',
+  '0294': '加里洞段',
+  '0295': '山崎段',
+  '0297': '阿托莫段',
+  '0298': '南富段',
+  '0299': '大農段',
+  '0902': '支亞干段',
+  '0903': '新白陽段',
+  '0904': '萬寶段',
+  '0905': '萬利段',
+  '0906': '古努安段',
+  '0914': '悅付南段',
+  '0919': '馬錫山段',
+  '0920': '嘉羅蘭段',
+  '0923': '里烈可段',
+};
+
+function ZoomTracker({
+  onZoomChange,
+  onOverlayToggle,
+}: {
+  onZoomChange: (zoom: number) => void;
+  onOverlayToggle: (name: string, enabled: boolean) => void;
+}) {
+  const map = useMapEvents({
+    zoomend() {
+      onZoomChange(map.getZoom());
+    },
+    overlayadd(e) {
+      onOverlayToggle(e.name, true);
+    },
+    overlayremove(e) {
+      onOverlayToggle(e.name, false);
+    },
+  });
+
+  useEffect(() => {
+    onZoomChange(map.getZoom());
+  }, [map, onZoomChange]);
+
+  return null;
+}
+
 const normalizeAddress = (addr: string) => {
   return addr
     .replace(/台/g, "臺")
@@ -145,15 +224,23 @@ function MapView({
   const [isSearching, setIsSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
+  const [cadastralGeojson, setCadastralGeojson] = useState<any>(null);
   const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
   const [lightboxData, setLightboxData] = useState<{ photos: string[]; index: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(13);
+  const [cadastralEnabled, setCadastralEnabled] = useState(false);
 
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
       .then((res) => res.json())
       .then((data) => setReserveGeojson(data))
       .catch((err) => console.error("無法載入原住民保留地 GeoJSON:", err));
+
+    fetch(`${import.meta.env.BASE_URL}hualien_guangfu_107.geojson`)
+      .then((res) => res.json())
+      .then((data) => setCadastralGeojson(data))
+      .catch((err) => console.error("無法載入107年光復鄉地籍圖 GeoJSON:", err));
 
     fetch(`${import.meta.env.BASE_URL}address_db.json`)
       .then((res) => res.json())
@@ -385,7 +472,35 @@ function MapView({
         </button>
       </div>
 
-      <MapContainer
+      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        {cadastralEnabled && zoomLevel < 15 && (
+          <div
+            style={{
+              position: "absolute",
+              top: "14px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              backgroundColor: "rgba(255, 255, 255, 0.95)",
+              color: "#1e3a8a",
+              border: "1px solid #bfdbfe",
+              padding: "10px 18px",
+              borderRadius: "30px",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+              fontSize: "14px",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              backdropFilter: "blur(4px)",
+              pointerEvents: "none",
+              animation: "fadeIn 0.2s ease-out",
+            }}
+          >
+            <span>💡 提示：請放大地圖 (縮放級別 &ge; 15) 以載入地籍圖界線！目前級別：{zoomLevel}</span>
+          </div>
+        )}
+        <MapContainer
         center={defaultCenter}
         zoom={13}
         style={{
@@ -509,6 +624,53 @@ function MapView({
             </FeatureGroup>
           </LayersControl.Overlay>
 
+          <LayersControl.Overlay name="107年光復鄉地籍圖">
+            <FeatureGroup>
+              {cadastralGeojson && zoomLevel >= 15 && (
+                <GeoJSON
+                  key={cadastralGeojson.features ? cadastralGeojson.features.length : "loaded-cadastral"}
+                  data={cadastralGeojson}
+                  style={{
+                    color: "#2563eb",
+                    weight: 1,
+                    opacity: 0.8,
+                    fillColor: "#3b82f6",
+                    fillOpacity: 0.15,
+                  }}
+                  onEachFeature={(feature, layer) => {
+                    if (feature.properties) {
+                      const props = feature.properties;
+                      const sectCode = props["地段代碼"] || props["段號_SCNO"] || "";
+                      const sectName = SECTION_NAMES[sectCode] || props["地段名_AA05"] || "未知地段";
+                      
+                      const mother = props["母號"] || "";
+                      const child = props["子號"] || "";
+                      const landNo = child && parseInt(child) !== 0 
+                        ? `${parseInt(mother)}-${parseInt(child)}` 
+                        : `${parseInt(mother)}`;
+                      
+                      const area = props["面積"] || props["AA10"] || "0";
+                      const landClass = props["編定使用類別"] || props["AA08"] || "未編定";
+
+                      layer.bindPopup(
+                        `<div style="font-size: 14px; min-width: 180px; line-height: 1.5; color: #1e293b;">
+                          <p style="margin: 0 0 8px 0; font-weight: 700; color: #2563eb; font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            107年光復鄉地籍圖
+                          </p>
+                          <p style="margin: 0 0 4px 0;"><strong>地段名稱：</strong>${sectName} (${sectCode})</p>
+                          <p style="margin: 0 0 4px 0;"><strong>地號：</strong>${landNo}</p>
+                          <p style="margin: 0 0 4px 0;"><strong>登記面積：</strong>${area} ㎡</p>
+                          <p style="margin: 0 0 4px 0;"><strong>編定類別：</strong>${landClass}</p>
+                          <p style="margin: 0 0 0 0; font-size: 12px; color: #64748b;"><strong>資料來源：</strong>花蓮縣鳳林地政事務所</p>
+                        </div>`
+                      );
+                    }
+                  }}
+                />
+              )}
+            </FeatureGroup>
+          </LayersControl.Overlay>
+
 
           {/* 都市土地與非都市土地 (地籍) 疊加層 */}
           <LayersControl.Overlay name="都市計畫分區圖 (都市土地)">
@@ -533,6 +695,14 @@ function MapView({
         <MapUpdater center={mapCenter} />
         <FlyToUpdater location={lastSubmittedLocation} />
         <LocationPicker onSelectLocation={onSelectLocation} />
+        <ZoomTracker
+          onZoomChange={setZoomLevel}
+          onOverlayToggle={(name, enabled) => {
+            if (name === "107年光復鄉地籍圖") {
+              setCadastralEnabled(enabled);
+            }
+          }}
+        />
 
         {selectedLocation && (
           <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
@@ -697,6 +867,7 @@ function MapView({
             );
           })}
       </MapContainer>
+      </div>
 
       {lightboxData && (
         <div
