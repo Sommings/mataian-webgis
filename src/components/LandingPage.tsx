@@ -10,11 +10,16 @@ import {
 } from "lucide-react";
 
 type LandingPageProps = {
-  onEnterApp: () => void;
+  onEnterGeneral: () => void;
+  onEnterInstant: () => void;
   reportCount: number;
 };
 
-export default function LandingPage({ onEnterApp, reportCount }: LandingPageProps) {
+export default function LandingPage({ 
+  onEnterGeneral, 
+  onEnterInstant, 
+  reportCount 
+}: LandingPageProps) {
   // 控制 FAQ 展開狀態的手風琴 State
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
@@ -227,60 +232,96 @@ export default function LandingPage({ onEnterApp, reportCount }: LandingPageProp
           </p>
         </div>
 
-        {/* 累計貢獻統計與開始填報按鈕並排 */}
-        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "center", alignItems: "center", width: "100%", maxWidth: "800px", marginBottom: "20px" }}>
+        {/* 雙按鈕通道與累計統計 */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "24px", width: "100%", maxWidth: "800px", marginBottom: "20px" }}>
+          
+          {/* 雙按鈕並列 */}
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", width: "100%" }}>
+            
+            {/* 1. 一般災情填報按鈕 */}
+            <button
+              onClick={onEnterGeneral}
+              style={{
+                backgroundColor: "#2563eb",
+                color: "white",
+                border: "none",
+                padding: "18px 36px",
+                borderRadius: "40px",
+                fontSize: "17px",
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 10px 25px -5px rgba(37, 99, 235, 0.35)",
+                transition: "all 0.2s ease-in-out",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "#1d4ed8";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "#2563eb";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <span>📋 進入一般災情填報</span>
+              <span style={{ fontSize: "18px" }}>➔</span>
+            </button>
+
+            {/* 2. 即時災情填報按鈕 */}
+            <button
+              onClick={onEnterInstant}
+              style={{
+                backgroundColor: "#ef4444",
+                color: "white",
+                border: "none",
+                padding: "18px 36px",
+                borderRadius: "40px",
+                fontSize: "17px",
+                fontWeight: 800,
+                cursor: "pointer",
+                boxShadow: "0 10px 25px -5px rgba(239, 68, 68, 0.35)",
+                transition: "all 0.2s ease-in-out",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "#dc2626";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "#ef4444";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              <span>🚨 進入即時災情填報</span>
+              <span style={{ fontSize: "18px" }}>➔</span>
+            </button>
+          </div>
+
           {/* 統計面板 */}
           <div
             style={{
               background: "white",
-              padding: "16px 30px",
+              padding: "12px 28px",
               borderRadius: "20px",
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+              boxShadow: "0 10px 20px rgba(0, 0, 0, 0.04)",
               display: "flex",
               alignItems: "center",
-              gap: "16px",
+              gap: "14px",
               border: "1px solid #e2e8f0"
             }}
           >
             <span style={{ fontSize: "14px", fontWeight: 700, color: "#64748b" }}>社群累計共創：</span>
             <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-              <span style={{ fontSize: "36px", fontWeight: 900, color: "#2563eb", lineHeight: 1 }}>
+              <span style={{ fontSize: "28px", fontWeight: 900, color: "#2563eb", lineHeight: 1 }}>
                 {reportCount}
               </span>
               <span style={{ fontSize: "14px", fontWeight: 700, color: "#1e3a8a" }}>筆災情</span>
             </div>
           </div>
-
-          {/* 進入填報按鈕 */}
-          <button
-            onClick={onEnterApp}
-            style={{
-              backgroundColor: "#2563eb",
-              color: "white",
-              border: "none",
-              padding: "18px 40px",
-              borderRadius: "40px",
-              fontSize: "17px",
-              fontWeight: 800,
-              cursor: "pointer",
-              boxShadow: "0 10px 25px -5px rgba(37, 99, 235, 0.4)",
-              transition: "all 0.2s ease-in-out",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = "#1d4ed8";
-              e.currentTarget.style.transform = "translateY(-1px)";
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = "#2563eb";
-              e.currentTarget.style.transform = "translateY(0)";
-            }}
-          >
-            <span>立即進入地圖系統</span>
-            <span style={{ fontSize: "18px" }}>➔</span>
-          </button>
         </div>
       </header>
 

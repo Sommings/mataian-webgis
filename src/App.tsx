@@ -8,7 +8,6 @@ import SuccessModal from "./components/SuccessModal";
 import MessageBoard from "./components/MessageBoard";
 import LandingPage from "./components/LandingPage";
 
-
 type SelectedLocation = {
   lat: number;
   lng: number;
@@ -59,14 +58,11 @@ function mapRowToReport(row: ReportRow): Report {
     ownership: row.ownership,
     usage: row.usage,
     isIndigenousReserve: row.is_indigenous_reserve,
-
     hasLandDamage: row.has_land_damage,
     hasBuildingDamage: row.has_building_damage,
-
     landVictimType: row.land_victim_type,
     landMudHeight: row.land_mud_height,
     landDamageLevel: row.land_damage_level,
-
     buildingVictimType: row.building_victim_type,
     buildingType: row.building_type,
     buildingTypeOther: row.building_type_other ?? "",
@@ -84,13 +80,17 @@ function mapRowToReport(row: ReportRow): Report {
 }
 
 function App() {
-  const [view, setView] = useState<'landing' | 'app'>('landing');
+  // 視圖狀態：landing (首頁), general (一般災情填報), instant (即時災情填報)
+  const [view, setView] = useState<'landing' | 'general' | 'instant'>('landing');
   const [mobileView, setMobileView] = useState<'map' | 'form'>('map');
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation>(null);
   const [loading, setLoading] = useState(true);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [lastSubmittedLocation, setLastSubmittedLocation] = useState<SelectedLocation>(null);
+
+  // 用於在即時填報模式中儲存多邊形繪製的頂點座標陣列
+  const [instantPolygon, setInstantPolygon] = useState<[number, number][]>([]);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -103,7 +103,7 @@ function App() {
 
       if (error) {
         console.error("讀取 Supabase 失敗：", error);
-        alert("讀取資料庫失敗，請查看 Console");
+        alert("讀取資料庫失敗，請查看主控台說明。");
         setLoading(false);
         return;
       }
@@ -128,14 +128,11 @@ function App() {
       ownership: newReport.ownership,
       usage: newReport.usage,
       is_indigenous_reserve: newReport.isIndigenousReserve,
-
       has_land_damage: newReport.hasLandDamage,
       has_building_damage: newReport.hasBuildingDamage,
-
       land_victim_type: newReport.landVictimType,
       land_mud_height: newReport.landMudHeight,
       land_damage_level: newReport.landDamageLevel,
-
       building_victim_type: newReport.buildingVictimType,
       building_type: newReport.buildingType,
       building_type_other: newReport.buildingTypeOther,
@@ -171,18 +168,20 @@ function App() {
     setIsSuccessModalOpen(true);
   };
 
+  // 1. 條件渲染首頁 LandingPage
   if (view === 'landing') {
     return (
       <LandingPage
-        onEnterApp={() => setView('app')}
+        onEnterGeneral={() => setView('general')}
+        onEnterInstant={() => setView('instant')}
         reportCount={reports.length}
       />
     );
   }
 
+  // 2. 填報地圖主 UI 面板
   return (
     <div className="app-wrapper">
-
       <div className="app-container">
         <div className="app-header">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
@@ -193,20 +192,23 @@ function App() {
                   fontSize: "14px",
                   fontWeight: 700,
                   letterSpacing: "0.08em",
-                  color: "#3b82f6",
+                  color: view === 'instant' ? "#ef4444" : "#3b82f6",
                 }}
               >
-                WebGIS 災情填報系統
+                WebGIS 災情填報系統 {view === 'instant' ? "【🚨 即時災情填報模式】" : "【📋 一般災情填報模式】"}
               </p>
             </div>
             <button
-              onClick={() => setView('landing')}
+              onClick={() => {
+                setView('landing');
+                setInstantPolygon([]); // 清除多邊形狀態
+              }}
               style={{
                 padding: "6px 14px",
                 borderRadius: "20px",
-                border: "1.5px solid #2563eb",
+                border: view === 'instant' ? "1.5px solid #ef4444" : "1.5px solid #2563eb",
                 backgroundColor: "white",
-                color: "#2563eb",
+                color: view === 'instant' ? "#ef4444" : "#2563eb",
                 fontWeight: 700,
                 fontSize: "13px",
                 cursor: "pointer",
@@ -214,10 +216,10 @@ function App() {
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
-                boxShadow: "0 2px 4px rgba(37,99,235,0.06)",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = "#eff6ff";
+                e.currentTarget.style.backgroundColor = view === 'instant' ? "#fef2f2" : "#eff6ff";
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseOut={(e) => {
@@ -232,7 +234,6 @@ function App() {
           <h1 className="app-title" style={{ marginTop: "4px" }}>
             花蓮馬太鞍溪堰塞湖災害參與式地圖
           </h1>
-
 
           <div
             style={{
@@ -264,7 +265,10 @@ function App() {
               textAlign: "center",
             }}
           >
-            填寫受災資料，並於地圖點選位置與查看既有填報點位。
+            {view === 'instant' 
+              ? "即時災情填報：請先在右側地圖上【繪製受災多邊形範圍】，確認範圍後即會彈出左側填報表單。"
+              : "一般災情填報：請填寫受災土地建物調查資料，並於地圖點選確切位置以建立災情數據庫。"
+            }
           </p>
 
           {loading && (
@@ -287,6 +291,9 @@ function App() {
             <ReportForm
               onAddReport={handleAddReport}
               selectedLocation={selectedLocation}
+              defaultTab={view === 'instant' ? 'emergency' : 'detailed'}
+              instantPolygon={instantPolygon}
+              onPolygonClear={() => setInstantPolygon([])}
             />
           </div>
 
@@ -299,6 +306,11 @@ function App() {
                 setMobileView('form');
               }}
               lastSubmittedLocation={lastSubmittedLocation}
+              mapMode={view}
+              onPolygonConfirm={(polygonPoints) => {
+                setInstantPolygon(polygonPoints);
+                setMobileView('form'); // 繪製確認後自動跳出表單
+              }}
             />
           </div>
         </div>
@@ -323,6 +335,7 @@ function App() {
         onClose={() => {
           setIsSuccessModalOpen(false);
           setMobileView('map');
+          setInstantPolygon([]); // 清空多邊形
         }}
         reportCount={reports.length}
       />

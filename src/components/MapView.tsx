@@ -9,11 +9,20 @@ import {
   LayersControl,
   GeoJSON,
   FeatureGroup,
+  Polygon,      // 引入 Polygon 元件
+  CircleMarker, // 引入 CircleMarker 元件
 } from "react-leaflet";
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
-import { Locate } from "lucide-react";
+import { Locate, ShieldAlert, Trash2, CheckCircle2, Play } from "lucide-react";
+
+const normalizeAddress = (addr: string) => {
+  return addr
+    .replace(/臺/g, "台")
+    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+    .replace(/\s+/g, "");
+};
 
 type SelectedLocation = {
   lat: number;
@@ -25,6 +34,8 @@ type MapViewProps = {
   selectedLocation: SelectedLocation;
   onSelectLocation: (location: { lat: number; lng: number }) => void;
   lastSubmittedLocation?: SelectedLocation;
+  mapMode: 'general' | 'instant';
+  onPolygonConfirm?: (polygonPoints: [number, number][]) => void;
 };
 
 const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
@@ -66,15 +77,26 @@ function FlyToUpdater({ location }: { location?: SelectedLocation }) {
   return null;
 }
 
+// 支援雙模式的互動點選器
 function LocationPicker({
   onSelectLocation,
+  mapMode,
+  isDrawing,
+  onAddDrawingPoint,
 }: {
   onSelectLocation: (location: { lat: number; lng: number }) => void;
+  mapMode: 'general' | 'instant';
+  isDrawing: boolean;
+  onAddDrawingPoint: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e: LeafletMouseEvent) {
       const { lat, lng } = e.latlng;
-      onSelectLocation({ lat, lng });
+      if (mapMode === 'instant' && isDrawing) {
+        onAddDrawingPoint(lat, lng);
+      } else {
+        onSelectLocation({ lat, lng });
+      }
     },
   });
 
@@ -126,8 +148,6 @@ function DetailBlock({
   );
 }
 
-
-
 function ZoomTracker({
   onZoomChange,
   onOverlayToggle,
@@ -154,18 +174,13 @@ function ZoomTracker({
   return null;
 }
 
-const normalizeAddress = (addr: string) => {
-  return addr
-    .replace(/台/g, "臺")
-    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
-    .replace(/\s+/g, "");
-};
-
 function MapView({
   reports,
   selectedLocation,
   onSelectLocation,
   lastSubmittedLocation,
+  mapMode,
+  onPolygonConfirm,
 }: MapViewProps) {
   const defaultCenter: LatLngExpression = [23.669, 121.423];
 
@@ -179,6 +194,10 @@ function MapView({
   const [zoomLevel, setZoomLevel] = useState(13);
   const [cadastralEnabled, setCadastralEnabled] = useState(false);
 
+  // PPGIS 多邊形災害範圍繪製 State
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingPoints, setDrawingPoints] = useState<[number, number][]>([]);
+
   useEffect(() => {
     fetch(`${import.meta.env.BASE_URL}fataan_reserve.geojson`)
       .then((res) => res.json())
@@ -190,6 +209,12 @@ function MapView({
       .then((data) => setAddressDb(data))
       .catch((err) => console.error("載入本地門牌資料庫失敗：", err));
   }, []);
+
+  // 重置即時模式的繪圖 State，如果 mapMode 切換
+  useEffect(() => {
+    setIsDrawing(false);
+    setDrawingPoints([]);
+  }, [mapMode]);
 
   const handleLocate = () => {
     if (!navigator.geolocation) {
@@ -231,10 +256,7 @@ function MapView({
 
     const normQuery = normalizeAddress(searchQuery);
 
-    // 0. 優先使用本地 CSV 地址庫比對
     if (addressDb.length > 0) {
-      // 為了處理使用者輸入時省略「村里」名稱的問題（例如資料庫為「花蓮縣光復鄉大同村中山路三段82號」，使用者僅輸入「花蓮縣光復鄉中山路三段82號」）
-      // 我們將行政區的字眼先過濾掉，取得核心的「街道+門牌」當作比對關鍵字
       const coreSearch = normQuery
         .replace(/花蓮縣/g, "")
         .replace(/光復鄉/g, "")
@@ -244,12 +266,10 @@ function MapView({
       const localMatch = addressDb.find(d => {
         const normA = normalizeAddress(d.a);
 
-        // 如果使用者有特地指定鄉鎮，則確保該地址符合該鄉鎮
         if (normQuery.includes("光復鄉") && !normA.includes("光復鄉")) return false;
         if (normQuery.includes("鳳林鎮") && !normA.includes("鳳林鎮")) return false;
         if (normQuery.includes("瑞穗鄉") && !normA.includes("瑞穗鄉")) return false;
 
-        // 核心字串比對（例如看 normA 是否包含 "中山路三段82號"）
         return normA.includes(coreSearch);
       });
 
@@ -265,7 +285,6 @@ function MapView({
     const q = searchQuery.includes("花蓮") ? searchQuery : `花蓮縣${searchQuery}`;
 
     try {
-      // 1. 嘗試使用 Google Maps API (如果有設定 Key 的話)
       if (apiKey) {
         const params = new URLSearchParams({
           address: q,
@@ -293,7 +312,6 @@ function MapView({
         }
       }
 
-      // 2. 備用方案：使用完全免費的 OpenStreetMap (Nominatim) API
       const osmResponse = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&countrycodes=tw`, {
         headers: {
           "Accept-Language": "zh-TW",
@@ -325,6 +343,68 @@ function MapView({
     }
   };
 
+  // 即時模式：添加繪圖點位
+  const handleAddDrawingPoint = (lat: number, lng: number) => {
+    setDrawingPoints((prev) => [...prev, [lat, lng]]);
+  };
+
+  // 即時模式：確認受災多邊形並觸發回傳與選點
+  const handleConfirmPolygon = () => {
+    if (drawingPoints.length < 3) {
+      alert("請至少標記 3 個頂點以圈出災害範圍！");
+      return;
+    }
+
+    // 計算多邊形所有頂點的幾何中心點 (Centroid)
+    const latSum = drawingPoints.reduce((sum, pt) => sum + pt[0], 0);
+    const lngSum = drawingPoints.reduce((sum, pt) => sum + pt[1], 0);
+    const centerLat = latSum / drawingPoints.length;
+    const centerLng = lngSum / drawingPoints.length;
+
+    // 定位選點
+    onSelectLocation({ lat: centerLat, lng: centerLng });
+
+    // 觸發多邊形確認並傳遞座標給 App.tsx
+    if (onPolygonConfirm) {
+      onPolygonConfirm(drawingPoints);
+    }
+
+    // 關閉繪圖模式，清空本地繪圖點
+    setIsDrawing(false);
+    setDrawingPoints([]);
+  };
+
+  const reserveGeojsonLayer = (
+    <FeatureGroup>
+      {reserveGeojson && (
+        <GeoJSON
+          key={reserveGeojson.features ? reserveGeojson.features.length : "loaded"}
+          data={reserveGeojson}
+          style={{
+            color: "#d97706",
+            weight: 2,
+            opacity: 0.8,
+            fillColor: "#f59e0b",
+            fillOpacity: 0.8,
+          }}
+          onEachFeature={(feature, layer) => {
+            if (feature.properties) {
+              const props = feature.properties;
+              layer.bindPopup(
+                `<div style="font-size: 14px; min-width: 150px;">
+                  <p style="margin: 0 0 5px 0; font-weight: 700; color: #b45309;">原住民保留地</p>
+                  <p style="margin: 0 0 3px 0;"><strong>縣市：</strong>${props["縣市名"] || ""}</p>
+                  <p style="margin: 0 0 3px 0;"><strong>鄉鎮：</strong>${props["鄉鎮名"] || ""}</p>
+                  <p style="margin: 0 0 3px 0;"><strong>地段名：</strong>${props["地段名"] || ""}</p>
+                </div>`
+              );
+            }
+          }}
+        />
+      )}
+    </FeatureGroup>
+  );
+
   return (
     <div>
       <div style={{ marginBottom: "14px" }}>
@@ -335,7 +415,7 @@ function MapView({
             color: "#1f2d3d",
           }}
         >
-          地圖選點
+          {mapMode === 'instant' ? "即時災害範圍描繪" : "地圖選點"}
         </h2>
         <p
           style={{
@@ -344,7 +424,10 @@ function MapView({
             fontSize: "14px",
           }}
         >
-          點選地圖可指定填報位置；點擊圖標可查看既有資料。
+          {mapMode === 'instant'
+            ? "即時填報模式：請利用上方控制板繪製受災範圍，點選確認後將自動調出填報表單。"
+            : "點選地圖可指定填報位置；點擊圖標可查看既有資料。"
+          }
         </p>
       </div>
 
@@ -415,12 +498,137 @@ function MapView({
         </button>
       </div>
 
-      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        {cadastralEnabled && zoomLevel < 13 && (
+      <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: "450px" }}>
+        
+        {/* PPGIS 即時災害範圍繪圖控制面板 (毛玻璃高級質感) */}
+        {mapMode === 'instant' && (
           <div
             style={{
               position: "absolute",
               top: "14px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              backgroundColor: "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(12px)",
+              border: isDrawing ? "2px solid #ef4444" : "1.5px solid #cbd5e1",
+              padding: "14px 20px",
+              borderRadius: "20px",
+              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+              width: "90%",
+              maxWidth: "460px",
+              boxSizing: "border-box",
+              display: "flex",
+              flexDirection: "column",
+              gap: "10px",
+              animation: "fadeIn 0.3s ease-out",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <ShieldAlert size={18} color={isDrawing ? "#dc2626" : "#475569"} />
+              <span style={{ fontSize: "14.5px", fontWeight: 800, color: isDrawing ? "#991b1b" : "#1e293b" }}>
+                {isDrawing ? "🔴 受災範圍描繪中..." : "🚨 即時災害範圍填報"}
+              </span>
+            </div>
+
+            <p style={{ margin: 0, fontSize: "12.5px", color: "#475569", lineHeight: 1.5 }}>
+              {isDrawing 
+                ? `請在右側地圖上【點選頂點】以圍出災害範圍。目前已標記 ${drawingPoints.length} 個點（至少需 3 個點）。`
+                : "點擊下方「開始繪製」按鈕，即可在地圖上連續點選，圈出即時泥沙淹水或受災區域。"
+              }
+            </p>
+
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {/* 開始/重設繪製按鈕 */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDrawing(!isDrawing);
+                  setDrawingPoints([]); // 切換時清空
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: isDrawing ? "#64748b" : "#ef4444",
+                  color: "white",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                }}
+              >
+                {isDrawing ? <Trash2 size={14} /> : <Play size={14} />}
+                <span>{isDrawing ? "取消繪圖" : "📍 開始繪製範圍"}</span>
+              </button>
+
+              {/* 清除點位按鈕 */}
+              {isDrawing && (
+                <button
+                  type="button"
+                  onClick={() => setDrawingPoints([])}
+                  disabled={drawingPoints.length === 0}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: "10px",
+                    border: "1px solid #cbd5e1",
+                    backgroundColor: "white",
+                    color: drawingPoints.length === 0 ? "#94a3b8" : "#475569",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: drawingPoints.length === 0 ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>清除</span>
+                </button>
+              )}
+
+              {/* 確認範圍按鈕 */}
+              {isDrawing && (
+                <button
+                  type="button"
+                  onClick={handleConfirmPolygon}
+                  disabled={drawingPoints.length < 3}
+                  style={{
+                    padding: "8px 16px",
+                    borderRadius: "10px",
+                    border: "none",
+                    backgroundColor: drawingPoints.length < 3 ? "#cbd5e1" : "#16a34a",
+                    color: "white",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: drawingPoints.length < 3 ? "not-allowed" : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                    boxShadow: drawingPoints.length < 3 ? "none" : "0 4px 6px -1px rgba(22, 163, 74, 0.2)"
+                  }}
+                >
+                  <CheckCircle2 size={14} />
+                  <span>確認受災範圍</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 縮放警告提示橫幅 */}
+        {cadastralEnabled && zoomLevel < 13 && (
+          <div
+            style={{
+              position: "absolute",
+              top: mapMode === 'instant' ? "145px" : "14px", // 在即時模式下避開頂部繪圖控制面板
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 1000,
@@ -443,339 +651,324 @@ function MapView({
             <span>💡 提示：請放大地圖 (縮放級別 &ge; 13) 以顯示地籍圖！目前級別：{zoomLevel}</span>
           </div>
         )}
+        
         <MapContainer
-        center={defaultCenter}
-        zoom={13}
-        preferCanvas={true}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          width: "100%",
-          borderRadius: "16px",
-          overflow: "hidden",
-        }}
-      >
-        <LayersControl position="topright">
-          <LayersControl.BaseLayer checked name="OpenStreetMap">
-            <TileLayer
-              attribution="&copy; OpenStreetMap contributors"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          </LayersControl.BaseLayer>
+          center={defaultCenter}
+          zoom={13}
+          preferCanvas={true}
+          style={{
+            flex: 1,
+            minHeight: "450px",
+            width: "100%",
+            borderRadius: "16px",
+            overflow: "hidden",
+          }}
+        >
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name="OpenStreetMap">
+              <TileLayer
+                attribution="&copy; OpenStreetMap contributors"
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="臺灣通用電子地圖 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="國土測繪圖資服務雲 (電子地圖)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="臺灣通用電子地圖-正射影像 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="國土測繪圖資服務雲-正射影像 (正射影像圖)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="臺灣通用電子地圖-含等高線 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/EMAP5/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="國土測繪圖資服務雲-混合地圖 (電子地圖)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/EMAP5/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="花蓮縣通用電子地圖">
-            <TileLayer
-              attribution="&copy; 花蓮縣政府"
-              url="https://map.hl.gov.tw/arcgis/rest/services/HLMAP_3857/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="花蓮縣一般版地圖">
+              <TileLayer
+                attribution="&copy; 花蓮縣政府"
+                url="https://map.hl.gov.tw/arcgis/rest/services/HLMAP_3857/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer name="花蓮縣正射影像 (衛星空照)">
-            <TileLayer
-              attribution="&copy; 花蓮縣政府"
-              url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="花蓮縣正射影像 (空照圖)">
+              <TileLayer
+                attribution="&copy; 花蓮縣政府"
+                url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
 
-          <LayersControl.Overlay name="鄉鎮市區界 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/TOWN/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.Overlay>
+            <LayersControl.Overlay name="鄉鎮市區界 (國土測繪服務雲)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/TOWN/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.Overlay>
 
-          <LayersControl.Overlay name="村里界 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/Village/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-            />
-          </LayersControl.Overlay>
+            <LayersControl.Overlay name="村里界 (國土測繪服務雲)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/Village/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+              />
+            </LayersControl.Overlay>
 
-          <LayersControl.Overlay name="國土利用現況調查成果圖-全國最新 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/LUIMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-              opacity={0.7}
-            />
-          </LayersControl.Overlay>
+            <LayersControl.Overlay name="段籍圖-段界 (國土測繪服務雲)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/LANDSECT/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+                opacity={0.8}
+              />
+            </LayersControl.Overlay>
 
-          <LayersControl.Overlay name="公有土地地籍圖 (國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/LAND_OPENDATA/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-              opacity={0.8}
-            />
-          </LayersControl.Overlay>
+            <LayersControl.Overlay name="原住民保留地 (大馬段範圍)">
+              {reserveGeojsonLayer}
+            </LayersControl.Overlay>
 
-          <LayersControl.Overlay name="原住民保留地 (光復鄉範圍)">
-            <FeatureGroup>
-              {reserveGeojson && (
-                <GeoJSON
-                  key={reserveGeojson.features ? reserveGeojson.features.length : "loaded"}
-                  data={reserveGeojson}
-                  style={{
-                    color: "#d97706",
-                    weight: 2,
-                    opacity: 0.8,
-                    fillColor: "#f59e0b",
-                    fillOpacity: 0.8,
-                  }}
-                  onEachFeature={(feature, layer) => {
-                    if (feature.properties) {
-                      const props = feature.properties;
-                      layer.bindPopup(
-                        `<div style="font-size: 14px; min-width: 150px;">
-                          <p style="margin: 0 0 5px 0; font-weight: 700; color: #b45309;">原住民保留地</p>
-                          <p style="margin: 0 0 3px 0;"><strong>縣市：</strong>${props["縣市名"] || ""}</p>
-                          <p style="margin: 0 0 3px 0;"><strong>鄉鎮：</strong>${props["鄉鎮名"] || ""}</p>
-                          <p style="margin: 0 0 3px 0;"><strong>段名：</strong>${props["地段名"] || ""}</p>
-                        </div>`
-                      );
-                    }
-                  }}
+            <LayersControl.Overlay name="107年光復鄉地籍圖">
+              {zoomLevel >= 13 && (
+                <TileLayer
+                  attribution="&copy; 花蓮縣光復地政事務所"
+                  url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
+                  maxZoom={18}
+                  minZoom={13}
+                  opacity={0.85}
                 />
               )}
-            </FeatureGroup>
-          </LayersControl.Overlay>
+            </LayersControl.Overlay>
 
-          <LayersControl.Overlay name="107年光復鄉地籍圖">
-            {zoomLevel >= 13 && (
+            <LayersControl.Overlay name="都市計畫土地使用分區圖">
               <TileLayer
-                attribution="&copy; 花蓮縣鳳林地政事務所"
-                url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
-                maxZoom={18}
-                minZoom={13}
-                opacity={0.85}
+                attribution="&copy; 花蓮縣政府"
+                url="https://map.hl.gov.tw/arcgis/rest/services/UP/UP_ZONE_3857/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={22}
+                opacity={0.6}
               />
-            )}
-          </LayersControl.Overlay>
+            </LayersControl.Overlay>
+          </LayersControl>
 
+          {/* 即時受災多邊形與頂點的渲染 */}
+          {isDrawing && drawingPoints.length > 0 && (
+            <>
+              <Polygon 
+                positions={drawingPoints} 
+                color="#ef4444" 
+                fillColor="#ef4444" 
+                fillOpacity={0.35} 
+                weight={3} 
+              />
+              {drawingPoints.map((pt, idx) => (
+                <CircleMarker 
+                  key={idx} 
+                  center={pt} 
+                  radius={5} 
+                  color="#dc2626" 
+                  fillColor="white" 
+                  fillOpacity={1} 
+                  weight={2} 
+                />
+              ))}
+            </>
+          )}
 
-          {/* 都市土地與非都市土地 (地籍) 疊加層 */}
-          <LayersControl.Overlay name="都市計畫分區圖 (都市土地)">
-            <TileLayer
-              attribution="&copy; 花蓮縣政府"
-              url="https://map.hl.gov.tw/arcgis/rest/services/UP/UP_ZONE_3857/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={22}
-              opacity={0.6}
-            />
-          </LayersControl.Overlay>
+          <MapUpdater center={mapCenter} />
+          <FlyToUpdater location={lastSubmittedLocation} />
+          
+          <LocationPicker 
+            onSelectLocation={onSelectLocation} 
+            mapMode={mapMode}
+            isDrawing={isDrawing}
+            onAddDrawingPoint={handleAddDrawingPoint}
+          />
+          
+          <ZoomTracker
+            onZoomChange={setZoomLevel}
+            onOverlayToggle={(name, enabled) => {
+              if (name === "107年光復鄉地籍圖") {
+                setCadastralEnabled(enabled);
+              }
+            }}
+          />
 
-          <LayersControl.Overlay name="全國段籍圖 (內政部國土測繪中心)">
-            <TileLayer
-              attribution="&copy; 內政部國土測繪中心"
-              url="https://wmts.nlsc.gov.tw/wmts/LANDSECT/default/GoogleMapsCompatible/{z}/{y}/{x}"
-              maxZoom={20}
-              opacity={0.8}
-            />
-          </LayersControl.Overlay>
-        </LayersControl>
+          {selectedLocation && (
+            <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
+              <Popup>
+                <div style={{ minWidth: "220px", fontSize: "14px" }}>
+                  <p style={{ margin: "0 0 8px 0", fontWeight: 700 }}>
+                    目前選擇位置
+                  </p>
+                  <PopupRow label="緯度：" value={selectedLocation.lat} />
+                  <PopupRow label="經度：" value={selectedLocation.lng} />
+                </div>
+              </Popup>
+            </Marker>
+          )}
 
-        <MapUpdater center={mapCenter} />
-        <FlyToUpdater location={lastSubmittedLocation} />
-        <LocationPicker onSelectLocation={onSelectLocation} />
-        <ZoomTracker
-          onZoomChange={setZoomLevel}
-          onOverlayToggle={(name, enabled) => {
-            if (name === "107年光復鄉地籍圖") {
-              setCadastralEnabled(enabled);
-            }
-          }}
-        />
+          {reports
+            .filter((report) => report.lat !== null && report.lng !== null)
+            .map((report, index) => {
+              const isLatest = lastSubmittedLocation &&
+                report.lat === lastSubmittedLocation.lat &&
+                report.lng === lastSubmittedLocation.lng;
 
-        {selectedLocation && (
-          <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
-            <Popup>
-              <div style={{ minWidth: "220px", fontSize: "14px" }}>
-                <p style={{ margin: "0 0 8px 0", fontWeight: 700 }}>
-                  目前選擇位置
-                </p>
-                <PopupRow label="緯度：" value={selectedLocation.lat} />
-                <PopupRow label="經度：" value={selectedLocation.lng} />
-              </div>
-            </Popup>
-          </Marker>
-        )}
-
-        {reports
-          .filter((report) => report.lat !== null && report.lng !== null)
-          .map((report, index) => {
-            const isLatest = lastSubmittedLocation &&
-              report.lat === lastSubmittedLocation.lat &&
-              report.lng === lastSubmittedLocation.lng;
-
-            return (
-              <Marker
-                key={index}
-                position={[report.lat!, report.lng!]}
-                icon={isLatest ? pulseIcon : defaultIcon}
-                zIndexOffset={isLatest ? 1000 : 0}
-              >
-                <Popup>
-                  <div
-                    style={{
-                      minWidth: "220px",
-                      maxWidth: "260px",
-                      fontSize: "14px",
-                      color: "#1f2937",
-                    }}
-                  >
-                    <p
+              return (
+                <Marker
+                  key={index}
+                  position={[report.lat!, report.lng!]}
+                  icon={isLatest ? pulseIcon : defaultIcon}
+                  zIndexOffset={isLatest ? 1000 : 0}
+                >
+                  <Popup>
+                    <div
                       style={{
-                        margin: "0 0 10px 0",
-                        fontWeight: 700,
-                        fontSize: "16px",
-                        color: "#1f2d3d",
+                        minWidth: "220px",
+                        maxWidth: "260px",
+                        fontSize: "14px",
+                        color: "#1f2937",
                       }}
                     >
-                      填報資料摘要
-                    </p>
+                      <p
+                        style={{
+                          margin: "0 0 10px 0",
+                          fontWeight: 700,
+                          fontSize: "16px",
+                          color: "#1f2d3d",
+                        }}
+                      >
+                        填報資料摘要
+                      </p>
 
-                    <PopupRow label="資料日期：" value={report.reportDate} />
-                    <PopupRow label="填表人：" value={report.respondentType} />
-                    <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
-                    <PopupRow label="地址：" value={report.address || "未填"} />
+                      <PopupRow label="資料日期：" value={report.reportDate} />
+                      <PopupRow label="填表人：" value={report.respondentType} />
+                      <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
+                      <PopupRow label="地址：" value={report.address || "未填"} />
 
-                    <PopupRow label="地號：" value={report.landParcel || "未填"} />
-                    <PopupRow label="土地受災：" value={report.hasLandDamage} />
-                    <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
+                      <PopupRow label="地號：" value={report.landParcel || "未填"} />
+                      <PopupRow label="土地受災：" value={report.hasLandDamage} />
+                      <PopupRow label="建物受災：" value={report.hasBuildingDamage} />
 
-                    {report.hasLandDamage === "是" && (
-                      <DetailBlock title="查看土地受災詳細資料">
-                        <PopupRow label="土地受災戶：" value={report.landVictimType} />
-                        <PopupRow
-                          label="土地泥沙高度："
-                          value={report.landMudHeight || "未填"}
-                        />
-                        <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
+                      {report.hasLandDamage === "是" && (
+                        <DetailBlock title="查看土地受災詳細資料">
+                          <PopupRow label="土地受災戶：" value={report.landVictimType} />
+                          <PopupRow
+                            label="土地泥沙高度："
+                            value={report.landMudHeight || "未填"}
+                          />
+                          <PopupRow label="土地受災程度：" value={report.landDamageLevel} />
+                        </DetailBlock>
+                      )}
+
+                      {report.hasBuildingDamage === "是" && (
+                        <DetailBlock title="查看建物受災詳細資料">
+                          <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
+                          <PopupRow
+                            label="建物型態："
+                            value={
+                              report.buildingType === "其它" && report.buildingTypeOther
+                                ? `${report.buildingType}（${report.buildingTypeOther}）`
+                                : report.buildingType
+                            }
+                          />
+                          <PopupRow
+                            label="建物樓層數："
+                            value={report.buildingFloors ?? "未填"}
+                          />
+                          <PopupRow
+                            label="建物居住人數："
+                            value={report.buildingResidents ?? "未填"}
+                          />
+                          <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
+                          <PopupRow
+                            label="建物有無建造執照："
+                            value={report.hasBuildingPermit}
+                          />
+                          <PopupRow
+                            label="建物有無使用執照："
+                            value={report.hasUsePermit}
+                          />
+                          <PopupRow
+                            label="建物災時淹水高度："
+                            value={report.buildingFloodHeight || "未填"}
+                          />
+                          <PopupRow
+                            label="建物目前泥沙堆積高度："
+                            value={report.buildingMudHeight || "未填"}
+                          />
+                          <PopupRow
+                            label="建物受災程度："
+                            value={report.buildingDamageLevel}
+                          />
+                          <PopupRow
+                            label="建物受損面積："
+                            value={
+                              report.damagedAreaPing !== null
+                                ? `${report.damagedAreaPing} 坪`
+                                : "未填"
+                            }
+                          />
+                        </DetailBlock>
+                      )}
+
+                      <DetailBlock title="查看其他基本資料">
+                        <PopupRow label="權屬情況：" value={report.ownership} />
+                        <PopupRow label="用途：" value={report.usage} />
+                        <PopupRow label="是否原保地：" value={report.isIndigenousReserve} />
                       </DetailBlock>
-                    )}
 
-                    {report.hasBuildingDamage === "是" && (
-                      <DetailBlock title="查看建物受災詳細資料">
-                        <PopupRow label="建物受災戶：" value={report.buildingVictimType} />
-                        <PopupRow
-                          label="建物型態："
-                          value={
-                            report.buildingType === "其它" && report.buildingTypeOther
-                              ? `${report.buildingType}（${report.buildingTypeOther}）`
-                              : report.buildingType
-                          }
-                        />
-                        <PopupRow
-                          label="建物樓層數："
-                          value={report.buildingFloors ?? "未填"}
-                        />
-                        <PopupRow
-                          label="建物居住人數："
-                          value={report.buildingResidents ?? "未填"}
-                        />
-                        <PopupRow label="建物建築材質：" value={report.buildingMaterial} />
-                        <PopupRow
-                          label="建物有無建造執照："
-                          value={report.hasBuildingPermit}
-                        />
-                        <PopupRow
-                          label="建物有無使用執照："
-                          value={report.hasUsePermit}
-                        />
-                        <PopupRow
-                          label="建物災時淹水高度："
-                          value={report.buildingFloodHeight || "未填"}
-                        />
-                        <PopupRow
-                          label="建物目前泥沙堆積高度："
-                          value={report.buildingMudHeight || "未填"}
-                        />
-                        <PopupRow
-                          label="建物受災程度："
-                          value={report.buildingDamageLevel}
-                        />
-                        <PopupRow
-                          label="建物受損面積："
-                          value={
-                            report.damagedAreaPing !== null
-                              ? `${report.damagedAreaPing} 坪`
-                              : "未填"
-                          }
-                        />
+                      <DetailBlock title="查看座標資訊">
+                        <PopupRow label="緯度：" value={report.lat} />
+                        <PopupRow label="經度：" value={report.lng} />
                       </DetailBlock>
-                    )}
 
-                    <DetailBlock title="查看其他基本資料">
-                      <PopupRow label="權屬情況：" value={report.ownership} />
-                      <PopupRow label="用途：" value={report.usage} />
-                      <PopupRow label="是否原保地：" value={report.isIndigenousReserve} />
-                    </DetailBlock>
-
-                    <DetailBlock title="查看座標資訊">
-                      <PopupRow label="緯度：" value={report.lat} />
-                      <PopupRow label="經度：" value={report.lng} />
-                    </DetailBlock>
-
-                    {report.photos && report.photos.length > 0 && (
-                      <div style={{ marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
-                        <button
-                          onClick={() => setLightboxData({ photos: report.photos!, index: 0 })}
-                          style={{
-                            width: "100%",
-                            padding: "10px 12px",
-                            backgroundColor: "#3b82f6",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "8px",
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontSize: "15px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "8px",
-                            transition: "background-color 0.2s"
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
-                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#3b82f6"}
-                        >
-                          查看現場照片 ({report.photos.length} 張)
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </Popup>
-              </Marker>
-            );
-          })}
-      </MapContainer>
+                      {report.photos && report.photos.length > 0 && (
+                        <div style={{ marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
+                          <button
+                            onClick={() => setLightboxData({ photos: report.photos!, index: 0 })}
+                            style={{
+                              width: "100%",
+                              padding: "10px 12px",
+                              backgroundColor: "#3b82f6",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              fontSize: "15px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "8px",
+                              transition: "background-color 0.2s"
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#3b82f6"}
+                          >
+                            查看現場照片 ({report.photos.length} 張)
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+        </MapContainer>
       </div>
 
       {lightboxData && (
