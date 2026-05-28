@@ -6,6 +6,8 @@ import type { Report } from "./types/report";
 import { supabase } from "./lib/supabase";
 import SuccessModal from "./components/SuccessModal";
 import MessageBoard from "./components/MessageBoard";
+import LandingPage from "./components/LandingPage";
+
 
 type SelectedLocation = {
   lat: number;
@@ -82,6 +84,7 @@ function mapRowToReport(row: ReportRow): Report {
 }
 
 function App() {
+  const [view, setView] = useState<'landing' | 'app'>('landing');
   const [mobileView, setMobileView] = useState<'map' | 'form'>('map');
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation>(null);
@@ -168,25 +171,68 @@ function App() {
     setIsSuccessModalOpen(true);
   };
 
+  if (view === 'landing') {
+    return (
+      <LandingPage
+        onEnterApp={() => setView('app')}
+        reportCount={reports.length}
+      />
+    );
+  }
+
   return (
     <div className="app-wrapper">
+
       <div className="app-container">
         <div className="app-header">
-          <p
-            style={{
-              margin: "0 0 8px 0",
-              fontSize: "14px",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              color: "#3b82f6",
-            }}
-          >
-            WebGIS 災情填報系統
-          </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
+            <div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  color: "#3b82f6",
+                }}
+              >
+                WebGIS 災情填報系統
+              </p>
+            </div>
+            <button
+              onClick={() => setView('landing')}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "20px",
+                border: "1.5px solid #2563eb",
+                backgroundColor: "white",
+                color: "#2563eb",
+                fontWeight: 700,
+                fontSize: "13px",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                boxShadow: "0 2px 4px rgba(37,99,235,0.06)",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = "#eff6ff";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = "white";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              📖 返回專案介紹
+            </button>
+          </div>
 
-          <h1 className="app-title">
+          <h1 className="app-title" style={{ marginTop: "4px" }}>
             花蓮馬太鞍溪堰塞湖災害參與式地圖
           </h1>
+
 
           <div
             style={{
