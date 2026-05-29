@@ -24,6 +24,20 @@ const normalizeAddress = (addr: string) => {
     .replace(/\s+/g, "");
 };
 
+const parsePolygonFromAddress = (address: string): [number, number][] | null => {
+  if (!address) return null;
+  const match = address.match(/災害範圍 \(多邊形點位\): (\[\[.*?\]\])/);
+  if (match && match[1]) {
+    try {
+      return JSON.parse(match[1]);
+    } catch (e) {
+      console.error("解析多邊形點位失敗:", e);
+      return null;
+    }
+  }
+  return null;
+};
+
 type SelectedLocation = {
   lat: number;
   lng: number;
@@ -348,21 +362,12 @@ function MapView({
     setDrawingPoints((prev) => [...prev, [lat, lng]]);
   };
 
-  // 即時模式：確認受災多邊形並觸發回傳與選點
+  // 即時模式：確認受災多邊形並觸發回傳與選點（不計算中心點、不點選標記，直接儲存多邊形範圍）
   const handleConfirmPolygon = () => {
     if (drawingPoints.length < 3) {
       alert("請至少標記 3 個頂點以圈出災害範圍！");
       return;
     }
-
-    // 計算多邊形所有頂點的幾何中心點 (Centroid)
-    const latSum = drawingPoints.reduce((sum, pt) => sum + pt[0], 0);
-    const lngSum = drawingPoints.reduce((sum, pt) => sum + pt[1], 0);
-    const centerLat = latSum / drawingPoints.length;
-    const centerLng = lngSum / drawingPoints.length;
-
-    // 定位選點
-    onSelectLocation({ lat: centerLat, lng: centerLng });
 
     // 觸發多邊形確認並傳遞座標給 App.tsx
     if (onPolygonConfirm) {
@@ -968,6 +973,81 @@ function MapView({
                 </Marker>
               );
             })}
+
+          {/* 渲染所有已上載的即時災情多邊形災害範圍 */}
+          {reports.map((report, idx) => {
+            const polygonPoints = parsePolygonFromAddress(report.address);
+            if (!polygonPoints) return null;
+
+            return (
+              <Polygon
+                key={`submitted-poly-${idx}`}
+                positions={polygonPoints}
+                color="#ea580c"
+                fillColor="#ea580c"
+                fillOpacity={0.25}
+                weight={3}
+              >
+                <Popup>
+                  <div
+                    style={{
+                      minWidth: "220px",
+                      maxWidth: "260px",
+                      fontSize: "14px",
+                      color: "#1f2937",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: "0 0 10px 0",
+                        fontWeight: 700,
+                        fontSize: "16px",
+                        color: "#ea580c",
+                      }}
+                    >
+                      即時受災範圍 (多邊形)
+                    </p>
+
+                    <PopupRow label="資料日期：" value={report.reportDate} />
+                    <PopupRow label="填表人：" value={report.respondentType} />
+                    <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
+                    <PopupRow 
+                      label="災情內容：" 
+                      value={report.address.split(" | 災害範圍 (多邊形點位):")[0] || "未填"} 
+                    />
+
+                    {report.photos && report.photos.length > 0 && (
+                      <div style={{ marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>
+                        <button
+                          onClick={() => setLightboxData({ photos: report.photos!, index: 0 })}
+                          style={{
+                            width: "100%",
+                            padding: "10px 12px",
+                            backgroundColor: "#3b82f6",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "8px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: "15px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "background-color 0.2s"
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#3b82f6"}
+                        >
+                          查看現場照片 ({report.photos.length} 張)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Polygon>
+            );
+          })}
         </MapContainer>
       </div>
 

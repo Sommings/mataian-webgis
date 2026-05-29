@@ -385,7 +385,7 @@ function ReportForm({
   };
 
   const handleEmergencySubmit = async () => {
-    if (!selectedLocation) {
+    if (!selectedLocation && (!instantPolygon || instantPolygon.length === 0)) {
       alert("請先在地圖上點選位置或繪製災害範圍！");
       return;
     }
@@ -454,8 +454,8 @@ function ReportForm({
         respondentType: emergencyRespondent as any,
         tribeName: emergencyTribe as any,
         address: serializedAddress,
-        lat: selectedLocation.lat,
-        lng: selectedLocation.lng,
+        lat: selectedLocation ? selectedLocation.lat : null,
+        lng: selectedLocation ? selectedLocation.lng : null,
         photos: uploadedPhotos,
         hasLandDamage: "否",
         hasBuildingDamage: "否",
@@ -1314,9 +1314,8 @@ function ReportForm({
                 經度
                 <input
                   style={{ ...fieldStyle, backgroundColor: "#f8fafc", cursor: "not-allowed" }}
-                  type="number"
-                  step="any"
-                  value={selectedLocation?.lng ?? ""}
+                  type={selectedLocation ? "number" : "text"}
+                  value={selectedLocation ? selectedLocation.lng : (instantPolygon.length > 0 ? "已成功圈選範圍" : "")}
                   placeholder="請在地圖點選或圈選"
                   readOnly
                 />
@@ -1326,9 +1325,8 @@ function ReportForm({
                 緯度
                 <input
                   style={{ ...fieldStyle, backgroundColor: "#f8fafc", cursor: "not-allowed" }}
-                  type="number"
-                  step="any"
-                  value={selectedLocation?.lat ?? ""}
+                  type={selectedLocation ? "number" : "text"}
+                  value={selectedLocation ? selectedLocation.lat : (instantPolygon.length > 0 ? "（免記錄中心點）" : "")}
                   placeholder="請在地圖點選或圈選"
                   readOnly
                 />
