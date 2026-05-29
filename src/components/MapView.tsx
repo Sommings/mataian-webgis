@@ -606,6 +606,7 @@ function MapView({
         <MapContainer
           center={defaultCenter}
           zoom={13}
+          maxZoom={22} // 解鎖地圖容器的最大縮放限制
           preferCanvas={true}
           style={{
             flex: 1,
@@ -691,7 +692,7 @@ function MapView({
                   attribution="&copy; 花蓮縣光復地政事務所"
                   url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
                   maxZoom={22}
-                  maxNativeZoom={20} // 最高實體切片更新為 zoom 20，大於 20 時自動放大 20 級切片
+                  maxNativeZoom={18} // 設為 18 作防禦性容錯，大於 18 時自動放大 18 級切片。若確認 19、20 資料夾已放入此專案路徑，可改為 20 以加載實體高清切片。
                   minZoom={13}
                   opacity={0.85}
                 />
