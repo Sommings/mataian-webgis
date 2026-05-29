@@ -685,13 +685,13 @@ function MapView({
               {reserveGeojsonLayer}
             </LayersControl.Overlay>
 
-            <LayersControl.Overlay name="107年光復鄉地籍圖">
+            <LayersControl.Overlay name="花蓮縣光復鄉地籍圖">
               {zoomLevel >= 13 && (
                 <TileLayer
                   attribution="&copy; 花蓮縣光復地政事務所"
                   url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
                   maxZoom={22}
-                  maxNativeZoom={18}
+                  maxNativeZoom={20} // 最高實體切片更新為 zoom 20，大於 20 時自動放大 20 級切片
                   minZoom={13}
                   opacity={0.85}
                 />
