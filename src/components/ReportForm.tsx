@@ -448,14 +448,28 @@ function ReportForm({
         serializedAddress += ` | 災害範圍 (多邊形點位): ${JSON.stringify(instantPolygon)}`;
       }
 
+      // 計算多邊形所有頂點的幾何中心點 (Centroid) 作為資料庫備用定位點，以滿足 Supabase NOT NULL 的限制
+      let databaseLat: number | null = null;
+      let databaseLng: number | null = null;
+      
+      if (selectedLocation) {
+        databaseLat = selectedLocation.lat;
+        databaseLng = selectedLocation.lng;
+      } else if (instantPolygon && instantPolygon.length > 0) {
+        const latSum = instantPolygon.reduce((sum, pt) => sum + pt[0], 0);
+        const lngSum = instantPolygon.reduce((sum, pt) => sum + pt[1], 0);
+        databaseLat = latSum / instantPolygon.length;
+        databaseLng = lngSum / instantPolygon.length;
+      }
+
       const emergencyReport: Report = {
         ...emptyReport,
         reportDate: getCurrentDateTimeString(),
         respondentType: emergencyRespondent as any,
         tribeName: emergencyTribe as any,
         address: serializedAddress,
-        lat: selectedLocation ? selectedLocation.lat : null,
-        lng: selectedLocation ? selectedLocation.lng : null,
+        lat: databaseLat,
+        lng: databaseLng,
         photos: uploadedPhotos,
         hasLandDamage: "否",
         hasBuildingDamage: "否",

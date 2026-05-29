@@ -826,7 +826,7 @@ function MapView({
           )}
 
           {reports
-            .filter((report) => report.lat !== null && report.lng !== null)
+            .filter((report) => report.lat !== null && report.lng !== null && parsePolygonFromAddress(report.address) === null)
             .map((report, index) => {
               const isLatest = lastSubmittedLocation &&
                 report.lat === lastSubmittedLocation.lat &&
