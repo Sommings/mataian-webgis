@@ -751,7 +751,8 @@ function MapView({
                 <TileLayer
                   attribution="&copy; 花蓮縣光復地政事務所"
                   url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
-                  maxZoom={18}
+                  maxZoom={22}
+                  maxNativeZoom={18}
                   minZoom={13}
                   opacity={0.85}
                 />
