@@ -47,6 +47,7 @@ type MapViewProps = {
   reports: Report[];
   selectedLocation: SelectedLocation;
   onSelectLocation: (location: { lat: number; lng: number }) => void;
+  onConfirmGeneralLocation?: () => void;
   lastSubmittedLocation?: SelectedLocation;
   mapMode: 'general' | 'instant';
   onPolygonConfirm?: (polygonPoints: [number, number][]) => void;
@@ -192,6 +193,7 @@ function MapView({
   reports,
   selectedLocation,
   onSelectLocation,
+  onConfirmGeneralLocation,
   lastSubmittedLocation,
   mapMode,
   onPolygonConfirm,
@@ -816,11 +818,41 @@ function MapView({
             <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
               <Popup>
                 <div style={{ minWidth: "220px", fontSize: "14px" }}>
-                  <p style={{ margin: "0 0 8px 0", fontWeight: 700 }}>
-                    目前選擇位置
+                  <p style={{ margin: "0 0 8px 0", fontWeight: 700, fontSize: "15px", color: "#1e3a8a" }}>
+                    🎯 已選取填報位置
                   </p>
                   <PopupRow label="緯度：" value={selectedLocation.lat} />
                   <PopupRow label="經度：" value={selectedLocation.lng} />
+                  
+                  <button
+                    onClick={() => {
+                      if (onConfirmGeneralLocation) {
+                        onConfirmGeneralLocation();
+                      }
+                    }}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      backgroundColor: "#2563eb",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "13px",
+                      marginTop: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "4px",
+                      boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#1d4ed8"}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+                  >
+                    📝 確認點位，開始填報
+                  </button>
                 </div>
               </Popup>
             </Marker>

@@ -5,7 +5,6 @@ import MapView from "./components/MapView";
 import type { Report } from "./types/report";
 import { supabase } from "./lib/supabase";
 import SuccessModal from "./components/SuccessModal";
-import MessageBoard from "./components/MessageBoard";
 import LandingPage from "./components/LandingPage";
 
 type SelectedLocation = {
@@ -82,7 +81,7 @@ function mapRowToReport(row: ReportRow): Report {
 function App() {
   // 視圖狀態：landing (首頁), general (一般災情填報), instant (即時災情填報)
   const [view, setView] = useState<'landing' | 'general' | 'instant'>('landing');
-  const [mobileView, setMobileView] = useState<'map' | 'form'>('map');
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation>(null);
   const [loading, setLoading] = useState(true);
@@ -202,6 +201,7 @@ function App() {
               onClick={() => {
                 setView('landing');
                 setInstantPolygon([]); // 清除多邊形狀態
+                setIsFormOpen(false); // 關閉表單側邊欄
               }}
               style={{
                 padding: "6px 14px",
@@ -266,8 +266,8 @@ function App() {
             }}
           >
             {view === 'instant' 
-              ? "即時災情填報：請先在右側地圖上【繪製受災多邊形範圍】，確認範圍後即會彈出左側填報表單。"
-              : "一般災情填報：請填寫受災土地建物調查資料，並於地圖點選確切位置以建立災情數據庫。"
+              ? "即時災情填報：請先在右側地圖上【繪製受災多邊形範圍】，確認範圍後即會自動彈出左側填報表單。"
+              : "一般災情填報：請先點選地圖位置，並在定位氣泡中點選「確認點位，開始填報」以打開填報欄。"
             }
           </p>
 
@@ -286,10 +286,42 @@ function App() {
           )}
         </div>
 
-        <div className={`app-content-grid show-${mobileView}`}>
-          <div className="app-form-panel">
+        <div className="app-content-grid">
+          {/* 填報表單側邊欄 (Disfactory 風格) */}
+          <div className={`app-form-panel ${isFormOpen ? 'open' : ''}`}>
+            {isFormOpen && (
+              <button
+                onClick={() => setIsFormOpen(false)}
+                style={{
+                  position: "absolute",
+                  top: "16px",
+                  right: "16px",
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "32px",
+                  height: "32px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "14px",
+                  fontWeight: "bold",
+                  color: "#64748b",
+                  zIndex: 1010,
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#e2e8f0"}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
+              >
+                ✕
+              </button>
+            )}
             <ReportForm
-              onAddReport={handleAddReport}
+              onAddReport={async (report) => {
+                await handleAddReport(report);
+                setIsFormOpen(false); // 成功填報後自動收起側邊欄
+              }}
               selectedLocation={selectedLocation}
               defaultTab={view === 'instant' ? 'emergency' : 'detailed'}
               instantPolygon={instantPolygon}
@@ -297,25 +329,27 @@ function App() {
             />
           </div>
 
+          {/* 地圖滿版區塊 */}
           <div className="app-map-panel">
             <MapView
               reports={reports}
               selectedLocation={selectedLocation}
               onSelectLocation={(loc) => {
                 setSelectedLocation(loc);
-                setMobileView('form');
+                // 點擊選點不再自動彈出表單，讓使用者在 Popup 內點擊「確認點位，開始填報」
+              }}
+              onConfirmGeneralLocation={() => {
+                setIsFormOpen(true); // 點擊氣泡內的確認按鈕後彈出表單
               }}
               lastSubmittedLocation={lastSubmittedLocation}
               mapMode={view}
               onPolygonConfirm={(polygonPoints) => {
                 setInstantPolygon(polygonPoints);
-                setMobileView('form'); // 繪製確認後自動跳出表單
+                setIsFormOpen(true); // 確認多邊形繪製後自動彈出表單
               }}
             />
           </div>
         </div>
-
-        <MessageBoard />
 
         <footer style={{
           marginTop: "40px",
@@ -334,23 +368,24 @@ function App() {
         isOpen={isSuccessModalOpen}
         onClose={() => {
           setIsSuccessModalOpen(false);
-          setMobileView('map');
+          setIsFormOpen(false); // 關閉表單側邊欄
           setInstantPolygon([]); // 清空多邊形
         }}
         reportCount={reports.length}
       />
 
+      {/* 手動同步移動端底層導航至側邊欄狀態 */}
       <div className="mobile-bottom-nav">
         <button
-          className={mobileView === 'map' ? 'active' : ''}
-          onClick={() => setMobileView('map')}
+          className={!isFormOpen ? 'active' : ''}
+          onClick={() => setIsFormOpen(false)}
         >
           <Map size={20} />
           <span>地圖檢視</span>
         </button>
         <button
-          className={mobileView === 'form' ? 'active' : ''}
-          onClick={() => setMobileView('form')}
+          className={isFormOpen ? 'active' : ''}
+          onClick={() => setIsFormOpen(true)}
         >
           <FileText size={20} />
           <span>填報災情</span>
