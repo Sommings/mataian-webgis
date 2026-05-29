@@ -604,7 +604,7 @@ function MapView({
             flex: 1,
             minHeight: "450px",
             width: "100%",
-            borderRadius: "16px",
+            borderRadius: "0", // 改成直角，不要圓角
             overflow: "hidden",
           }}
         >
