@@ -512,7 +512,7 @@ function MapView({
           <div
             style={{
               position: "absolute",
-              top: "14px",
+              top: "90px", // 避開頂部的浮動 Header Bar
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 1000,
@@ -635,7 +635,7 @@ function MapView({
           <div
             style={{
               position: "absolute",
-              top: mapMode === 'instant' ? "145px" : "14px", // 在即時模式下避開頂部繪圖控制面板
+              top: mapMode === 'instant' ? "220px" : "90px", // 在即時模式與一般模式下避開頂部元件
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 1000,

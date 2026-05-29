@@ -202,48 +202,134 @@ code {
 
 /* --- App Layout Styles (RWD) --- */
 .app-wrapper {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
   background: linear-gradient(180deg, #eef4fb 0%, #f7f9fc 100%);
-  padding: 12px;
+  padding: 0;
+  margin: 0;
   box-sizing: border-box;
+  position: relative;
 }
 
 .app-container {
-  max-width: 95vw;
-  margin: 0 auto;
-  padding: 8px 24px;
-}
-
-.app-header {
-  margin-bottom: 16px;
-  padding: 4px 12px 8px;
-  text-align: center;
-}
-
-.app-title {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
   margin: 0;
-  font-size: 32px;
-  line-height: 1.15;
-  color: #1f2d3d;
-  font-weight: 800;
-  text-align: center;
+  padding: 0;
+  position: relative;
+}
+
+/* 浮動標題列樣式 (Disfactory 風格) */
+.app-floating-header {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 1010;
+  background-color: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 16px;
+  padding: 10px 20px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 850;
+  color: #1e3a8a;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mode-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.mode-badge.general {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.mode-badge.instant {
+  background-color: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-loading-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  animation: pulseEffect 1.5s infinite;
+}
+
+.back-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #cbd5e1;
+  background-color: white;
+  color: #475569;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  white-space: nowrap;
+}
+
+.back-btn:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+  color: #1e293b;
+  transform: translateY(-1px);
 }
 
 .app-content-grid {
   position: relative;
   width: 100%;
-  height: calc(100vh - 200px);
-  min-height: 640px;
-  border-radius: 24px;
+  height: 100%;
+  min-height: 100%;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: 0 15px 35px rgba(31, 45, 61, 0.05);
+  box-shadow: none;
   background-color: #ffffff;
 }
 
 /* 填報表單面板 - 浮動毛玻璃側邊欄 (Disfactory 風格) */
 .app-form-panel {
   position: absolute;
-  top: 16px;
+  top: 88px; /* 避開頂端 16px + 56px + 16px = 88px 浮動標題列 */
   left: 16px;
   bottom: 16px;
   width: 440px;
@@ -256,7 +342,7 @@ code {
   border-radius: 20px;
   padding: 24px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
-  max-height: calc(100% - 32px);
+  max-height: calc(100% - 104px);
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
@@ -279,6 +365,32 @@ code {
 .app-form-panel::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 10px;
+}
+
+/* 浮動版權 Footer 樣式 (右下角精巧標籤) */
+.app-floating-footer {
+  position: absolute;
+  bottom: 8px;
+  right: 16px;
+  z-index: 1000;
+  font-size: 11.5px;
+  color: #64748b;
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.app-floating-footer a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.app-floating-footer a:hover {
+  text-decoration: underline;
 }
 
 /* 地圖滿版面板 */

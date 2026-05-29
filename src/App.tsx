@@ -182,108 +182,33 @@ function App() {
   return (
     <div className="app-wrapper">
       <div className="app-container">
-        <div className="app-header">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%", flexWrap: "wrap", gap: "10px", marginBottom: "8px" }}>
-            <div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
-                  color: view === 'instant' ? "#ef4444" : "#3b82f6",
-                }}
-              >
-                WebGIS 災情填報系統 {view === 'instant' ? "【🚨 即時災情填報模式】" : "【📋 一般災情填報模式】"}
-              </p>
-            </div>
+        <div className="app-floating-header">
+          <div className="header-left">
+            <h1 className="header-title">
+              花蓮馬太鞍溪堰塞湖災害參與式地圖
+            </h1>
+            <span className={`mode-badge ${view === 'instant' ? 'instant' : 'general'}`}>
+              {view === 'instant' ? "🚨 即時災情填報模式" : "📋 一般災情填報模式"}
+            </span>
+          </div>
+
+          <div className="header-right">
+            {loading && (
+              <span className="header-loading-text">
+                資料載入中...
+              </span>
+            )}
             <button
               onClick={() => {
                 setView('landing');
                 setInstantPolygon([]); // 清除多邊形狀態
                 setIsFormOpen(false); // 關閉表單側邊欄
               }}
-              style={{
-                padding: "6px 14px",
-                borderRadius: "20px",
-                border: view === 'instant' ? "1.5px solid #ef4444" : "1.5px solid #2563eb",
-                backgroundColor: "white",
-                color: view === 'instant' ? "#ef4444" : "#2563eb",
-                fontWeight: 700,
-                fontSize: "13px",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.06)",
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = view === 'instant' ? "#fef2f2" : "#eff6ff";
-                e.currentTarget.style.transform = "translateY(-1px)";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = "white";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
+              className="back-btn"
             >
               📖 返回專案介紹
             </button>
           </div>
-
-          <h1 className="app-title" style={{ marginTop: "4px" }}>
-            花蓮馬太鞍溪堰塞湖災害參與式地圖
-          </h1>
-
-          <div
-            style={{
-              marginTop: "12px",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 14px",
-              backgroundColor: "#e8f0fe",
-              borderRadius: "20px",
-              color: "#1e40af",
-              fontWeight: 600,
-              fontSize: "14px",
-              animation: isSuccessModalOpen ? "popIn 0.5s ease-out" : "none"
-            }}
-          >
-            <span>社群共創貢獻進度：</span>
-            <span style={{ fontSize: "18px", color: "#2563eb", fontWeight: 800 }}>{reports.length}</span>
-            <span>筆災情紀錄</span>
-          </div>
-
-          <p
-            style={{
-              marginTop: "6px",
-              marginBottom: "4px",
-              color: "#64748b",
-              fontSize: "14px",
-              lineHeight: 1.5,
-              textAlign: "center",
-            }}
-          >
-            {view === 'instant' 
-              ? "即時災情填報：請先在右側地圖上【繪製受災多邊形範圍】，確認範圍後即會自動彈出左側填報表單。"
-              : "一般災情填報：請先點選地圖位置，並在定位氣泡中點選「確認點位，開始填報」以打開填報欄。"
-            }
-          </p>
-
-          {loading && (
-            <p
-              style={{
-                margin: 0,
-                color: "#2563eb",
-                fontWeight: 700,
-                fontSize: "14px",
-                textAlign: "center",
-              }}
-            >
-              資料載入中...
-            </p>
-          )}
         </div>
 
         <div className="app-content-grid">
@@ -351,16 +276,8 @@ function App() {
           </div>
         </div>
 
-        <footer style={{
-          marginTop: "40px",
-          paddingTop: "20px",
-          borderTop: "1px solid #e2e8f0",
-          textAlign: "center",
-          color: "#64748b",
-          fontSize: "14px",
-          paddingBottom: "10px"
-        }}>
-          開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "none", fontWeight: 600 }}>政大國土服務團</a>
+        <footer className="app-floating-footer">
+          開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer">政大國土服務團</a>
         </footer>
       </div>
 
