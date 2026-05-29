@@ -438,7 +438,7 @@ code {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 8px;
-  width: 460px;
+  width: 350px; /* 移除定位按鈕後縮減寬度更精簡 */
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
 }
@@ -611,4 +611,19 @@ code {
   .lat-lng-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* 定位按鈕 Loading 旋轉動畫 */
+.locate-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e2e8f0;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spinLocate 0.8s linear infinite;
+}
+
+@keyframes spinLocate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

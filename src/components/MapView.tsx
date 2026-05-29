@@ -447,38 +447,6 @@ function MapView({
         >
           {isSearching ? "搜尋中..." : "搜尋地址"}
         </button>
-        <button
-          onClick={handleLocate}
-          disabled={isSearching || isLocating}
-          style={{
-            flex: "0 0 auto",
-            padding: "10px 16px",
-            borderRadius: "8px",
-            border: "1px solid #3b82f6",
-            backgroundColor: "white",
-            color: "#3b82f6",
-            fontWeight: 600,
-            cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
-            opacity: (isSearching || isLocating) ? 0.7 : 1,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            transition: "all 0.2s",
-          }}
-          onMouseOver={(e) => {
-            if (!isSearching && !isLocating) {
-              e.currentTarget.style.backgroundColor = "#eff6ff";
-            }
-          }}
-          onMouseOut={(e) => {
-            if (!isSearching && !isLocating) {
-              e.currentTarget.style.backgroundColor = "white";
-            }
-          }}
-        >
-          <Locate size={18} />
-          {isLocating ? "定位中..." : "定位目前位置"}
-        </button>
       </div>
 
       <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: "450px" }}>
@@ -770,6 +738,58 @@ function MapView({
               ))}
             </>
           )}
+
+          {/* 自訂原生 Locate 控制項 (定位在縮放控制項下方) */}
+          <div 
+            className="leaflet-control-locate leaflet-bar"
+            style={{
+              position: "absolute",
+              top: "154px", /* 縮放控制項 top 88px + 60px 高度 + 6px 間距 = 154px */
+              left: "10px",
+              zIndex: 1000,
+              pointerEvents: "auto",
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleLocate}
+              disabled={isSearching || isLocating}
+              title={isLocating ? "正在定位中..." : "定位目前位置"}
+              style={{
+                width: "30px",
+                height: "30px",
+                backgroundColor: "white",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
+                color: isLocating ? "#3b82f6" : "#475569",
+                padding: 0,
+                outline: "none",
+                boxSizing: "border-box",
+                transition: "all 0.2s",
+              }}
+              onMouseOver={(e) => {
+                if (!isSearching && !isLocating) {
+                  e.currentTarget.style.backgroundColor = "#f4f4f5";
+                  e.currentTarget.style.color = "#1e293b";
+                }
+              }}
+              onMouseOut={(e) => {
+                if (!isSearching && !isLocating) {
+                  e.currentTarget.style.backgroundColor = "white";
+                  e.currentTarget.style.color = "#475569";
+                }
+              }}
+            >
+              {isLocating ? (
+                <div className="locate-spinner"></div>
+              ) : (
+                <Locate size={16} />
+              )}
+            </button>
+          </div>
 
           <MapUpdater center={mapCenter} />
           <FlyToUpdater location={lastSubmittedLocation} />

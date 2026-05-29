@@ -276,9 +276,7 @@ function App() {
           </div>
         </div>
 
-        <footer className="app-floating-footer">
-          開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer">政大國土服務團</a>
-        </footer>
+
       </div>
 
       <SuccessModal
