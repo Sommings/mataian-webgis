@@ -616,14 +616,7 @@ function MapView({
           }}
         >
           <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="OpenStreetMap">
-              <TileLayer
-                attribution="&copy; OpenStreetMap contributors"
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="國土測繪圖資服務雲 (電子地圖)">
+            <LayersControl.BaseLayer checked name="國土測繪圖資服務雲 (電子地圖)">
               <TileLayer
                 attribution="&copy; 內政部國土測繪中心"
                 url="https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
@@ -764,7 +757,7 @@ function MapView({
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
-                color: isLocating ? "#3b82f6" : "#475569",
+                color: isLocating ? "#1d4ed8" : "#2563eb", // 預設改成更為明顯的藍色
                 padding: 0,
                 outline: "none",
                 boxSizing: "border-box",
@@ -773,13 +766,13 @@ function MapView({
               onMouseOver={(e) => {
                 if (!isSearching && !isLocating) {
                   e.currentTarget.style.backgroundColor = "#f4f4f5";
-                  e.currentTarget.style.color = "#1e293b";
+                  e.currentTarget.style.color = "#1d4ed8"; // hover 時深藍色
                 }
               }}
               onMouseOut={(e) => {
                 if (!isSearching && !isLocating) {
                   e.currentTarget.style.backgroundColor = "white";
-                  e.currentTarget.style.color = "#475569";
+                  e.currentTarget.style.color = "#2563eb"; // 恢復科技藍
                 }
               }}
             >
