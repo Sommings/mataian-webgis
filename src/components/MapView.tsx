@@ -15,7 +15,7 @@ import {
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
-import { Locate, ShieldAlert, Trash2, CheckCircle2, Play } from "lucide-react";
+import { Locate, Trash2, CheckCircle2, Play } from "lucide-react";
 
 const normalizeAddress = (addr: string) => {
   return addr
@@ -451,126 +451,118 @@ function MapView({
 
       <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: "450px" }}>
         
-        {/* PPGIS 即時災害範圍繪圖控制面板 (毛玻璃高級質感) */}
+        {/* PPGIS 即時災害範圍繪圖控制按鈕組 (單獨漂浮在地圖中下) */}
         {mapMode === 'instant' && (
-          <div
-            style={{
-              position: "absolute",
-              top: "90px", // 避開頂部的浮動 Header Bar
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 1000,
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              backdropFilter: "blur(12px)",
-              border: isDrawing ? "2px solid #ef4444" : "1.5px solid #cbd5e1",
-              padding: "14px 20px",
-              borderRadius: "0", // 改成直角，不要圓角
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-              width: "90%",
-              maxWidth: "460px",
-              boxSizing: "border-box",
-              display: "flex",
-              flexDirection: "column",
-              gap: "10px",
-              animation: "fadeIn 0.3s ease-out",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <ShieldAlert size={18} color={isDrawing ? "#dc2626" : "#475569"} />
-              <span style={{ fontSize: "14.5px", fontWeight: 800, color: isDrawing ? "#991b1b" : "#1e293b" }}>
-                {isDrawing ? "🔴 受災範圍描繪中..." : "🚨 即時災害範圍填報"}
-              </span>
-            </div>
-
-            <p style={{ margin: 0, fontSize: "12.5px", color: "#475569", lineHeight: 1.5 }}>
-              {isDrawing 
-                ? `請在右側地圖上【點選頂點】以圍出災害範圍。目前已標記 ${drawingPoints.length} 個點（至少需 3 個點）。`
-                : "點擊下方「開始繪製」按鈕，即可在地圖上連續點選，圈出即時泥沙淹水或受災區域。"
-              }
-            </p>
-
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {/* 開始/重設繪製按鈕 */}
+          <div className="app-instant-drawing-control">
+            {!isDrawing ? (
               <button
                 type="button"
                 onClick={() => {
-                  setIsDrawing(!isDrawing);
-                  setDrawingPoints([]); // 切換時清空
+                  setIsDrawing(true);
+                  setDrawingPoints([]);
                 }}
                 style={{
-                  flex: 1,
-                  padding: "8px 12px",
-                  borderRadius: "10px",
-                  border: "none",
-                  backgroundColor: isDrawing ? "#64748b" : "#ef4444",
+                  padding: "12px 28px",
+                  backgroundColor: "#ef4444",
                   color: "white",
-                  fontSize: "13px",
-                  fontWeight: 700,
+                  border: "none",
+                  borderRadius: "0", // 改成直角
+                  fontWeight: 800,
+                  fontSize: "15px",
                   cursor: "pointer",
+                  boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: "4px",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)"
+                  gap: "8px",
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#dc2626";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "#ef4444";
+                  e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
-                {isDrawing ? <Trash2 size={14} /> : <Play size={14} />}
-                <span>{isDrawing ? "取消繪圖" : "📍 開始繪製範圍"}</span>
+                <Play size={16} />
+                <span>開始繪製及時災情範圍</span>
               </button>
-
-              {/* 清除點位按鈕 */}
-              {isDrawing && (
+            ) : (
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
+                {/* 清除按鈕 */}
                 <button
                   type="button"
                   onClick={() => setDrawingPoints([])}
                   disabled={drawingPoints.length === 0}
                   style={{
-                    padding: "8px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #cbd5e1",
+                    padding: "10px 18px",
                     backgroundColor: "white",
                     color: drawingPoints.length === 0 ? "#94a3b8" : "#475569",
-                    fontSize: "13px",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "0",
                     fontWeight: 700,
+                    fontSize: "14px",
                     cursor: drawingPoints.length === 0 ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    gap: "4px"
+                    gap: "6px"
                   }}
                 >
                   <Trash2 size={14} />
-                  <span>清除</span>
+                  <span>清除點位 ({drawingPoints.length})</span>
                 </button>
-              )}
 
-              {/* 確認範圍按鈕 */}
-              {isDrawing && (
+                {/* 確認範圍按鈕 */}
                 <button
                   type="button"
                   onClick={handleConfirmPolygon}
                   disabled={drawingPoints.length < 3}
                   style={{
-                    padding: "8px 16px",
-                    borderRadius: "10px",
+                    padding: "10px 22px",
+                    backgroundColor: drawingPoints.length < 3 ? "#e2e8f0" : "#16a34a",
+                    color: drawingPoints.length < 3 ? "#94a3b8" : "white",
                     border: "none",
-                    backgroundColor: drawingPoints.length < 3 ? "#cbd5e1" : "#16a34a",
-                    color: "white",
-                    fontSize: "13px",
-                    fontWeight: 700,
+                    borderRadius: "0",
+                    fontWeight: 800,
+                    fontSize: "14px",
                     cursor: drawingPoints.length < 3 ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    gap: "4px",
-                    boxShadow: drawingPoints.length < 3 ? "none" : "0 4px 6px -1px rgba(22, 163, 74, 0.2)"
+                    gap: "6px",
+                    boxShadow: drawingPoints.length < 3 ? "none" : "0 4px 12px rgba(22, 163, 74, 0.2)"
                   }}
                 >
                   <CheckCircle2 size={14} />
                   <span>確認受災範圍</span>
                 </button>
-              )}
-            </div>
+
+                {/* 取消按鈕 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDrawing(false);
+                    setDrawingPoints([]);
+                  }}
+                  style={{
+                    padding: "10px 18px",
+                    backgroundColor: "#64748b",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "0",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <span>取消</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 

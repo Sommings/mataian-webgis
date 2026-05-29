@@ -627,3 +627,23 @@ code {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* PPGIS 即時災害範圍繪圖控制按鈕組 (地圖中下定位) */
+.app-instant-drawing-control {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@media (max-width: 980px) {
+  .app-instant-drawing-control {
+    bottom: 88px; /* 避開行動端底部導覽列的 68px 高度 */
+  }
+}
