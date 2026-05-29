@@ -232,7 +232,7 @@ code {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 16px;
+  border-radius: 0; /* 改為直角，不要圓角 */
   padding: 10px 20px;
   box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
   display: flex;
@@ -339,7 +339,7 @@ code {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1.5px solid rgba(255, 255, 255, 0.8);
-  border-radius: 20px;
+  border-radius: 0; /* 改為直角，不要圓角 */
   padding: 24px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
   max-height: calc(100% - 104px);
@@ -378,7 +378,7 @@ code {
   background-color: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(4px);
   padding: 3px 10px;
-  border-radius: 6px;
+  border-radius: 0; /* 改為直角，不要圓角 */
   border: 1px solid rgba(226, 232, 240, 0.8);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
@@ -434,13 +434,19 @@ code {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.8);
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: 0; /* 改為直角，不要圓角 */
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   display: flex;
   gap: 8px;
   width: 460px;
   max-width: calc(100vw - 32px);
   box-sizing: border-box;
+}
+
+/* Leaflet Popup 直角適配 */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  border-radius: 0 !important;
 }
 
 /* 避開頂部浮動元件，微調 Leaflet 控制項位置 */

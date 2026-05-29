@@ -496,7 +496,7 @@ function MapView({
               backdropFilter: "blur(12px)",
               border: isDrawing ? "2px solid #ef4444" : "1.5px solid #cbd5e1",
               padding: "14px 20px",
-              borderRadius: "20px",
+              borderRadius: "0", // 改成直角，不要圓角
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
               width: "90%",
               maxWidth: "460px",
