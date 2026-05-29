@@ -414,30 +414,6 @@ function MapView({
 
   return (
     <div>
-      <div style={{ marginBottom: "14px" }}>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: "24px",
-            color: "#1f2d3d",
-          }}
-        >
-          {mapMode === 'instant' ? "即時災害範圍描繪" : "地圖選點"}
-        </h2>
-        <p
-          style={{
-            margin: "8px 0 0 0",
-            color: "#5b6b7a",
-            fontSize: "14px",
-          }}
-        >
-          {mapMode === 'instant'
-            ? "即時填報模式：請利用上方控制板繪製受災範圍，點選確認後將自動調出填報表單。"
-            : "點選地圖可指定填報位置；點擊圖標可查看既有資料。"
-          }
-        </p>
-      </div>
-
       <div className="map-search-bar" style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
         <input
           type="text"
