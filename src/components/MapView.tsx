@@ -414,7 +414,7 @@ function MapView({
 
   return (
     <div>
-      <div className="map-search-bar" style={{ display: "flex", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+      <div className="map-search-bar">
         <input
           type="text"
           value={searchQuery}
