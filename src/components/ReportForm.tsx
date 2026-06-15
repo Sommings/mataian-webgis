@@ -356,6 +356,15 @@ function ReportForm({
         ...formData,
         photos: uploadedPhotos,
       });
+
+      // 如果有即時繪製的多邊形災害範圍點位，則將其序列化並附加於 address 欄位末端
+      if (instantPolygon && instantPolygon.length > 0) {
+        const polygonStr = ` | 災害範圍 (多邊形點位): ${JSON.stringify(instantPolygon)}`;
+        cleanedReport.address = cleanedReport.address 
+          ? `${cleanedReport.address}${polygonStr}` 
+          : `災害範圍 (多邊形點位): ${JSON.stringify(instantPolygon)}`;
+      }
+
       await onAddReport(cleanedReport);
 
       setFormData({
@@ -433,8 +442,11 @@ function ReportForm({
         uploadedPhotos.push(publicUrlData.publicUrl);
       }
 
-      // 構建即時災情的 address 欄位 (僅包含類型與說明，不序列化多邊形點位)
-      const serializedAddress = `[🚨即時災情] 類型: ${instantType} | 說明: ${instantDesc}`;
+      // 構建即時災情的 address 欄位（序列化類型、說明與多邊形範圍點位）
+      let serializedAddress = `[🚨即時災情] 類型: ${instantType} | 說明: ${instantDesc}`;
+      if (instantPolygon && instantPolygon.length > 0) {
+        serializedAddress += ` | 災害範圍 (多邊形點位): ${JSON.stringify(instantPolygon)}`;
+      }
 
       // 計算多邊形所有頂點的幾何中心點 (Centroid) 作為資料庫備用定位點，以滿足 Supabase NOT NULL 的限制
       let databaseLat: number | null = null;
