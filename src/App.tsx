@@ -271,6 +271,7 @@ function App() {
               selectedLocation={selectedLocation}
               onSelectLocation={(loc) => {
                 setSelectedLocation(loc);
+                setInstantPolygon([]);
                 // 點擊選點不再自動彈出表單，讓使用者在 Popup 內點擊「確認點位，開始填報」
               }}
               onConfirmGeneralLocation={() => {
