@@ -92,6 +92,13 @@ function App() {
   const [instantPolygon, setInstantPolygon] = useState<[number, number][]>([]);
 
   useEffect(() => {
+    // 當切換視圖（如回到首頁、切換一般/即時模式）時，重置選點與多邊形狀態，確保一開始系統不會有預設點位
+    setSelectedLocation(null);
+    setInstantPolygon([]);
+    setIsFormOpen(false);
+  }, [view]);
+
+  useEffect(() => {
     const fetchReports = async () => {
       setLoading(true);
 
@@ -250,7 +257,10 @@ function App() {
               selectedLocation={selectedLocation}
               defaultTab={view === 'instant' ? 'emergency' : 'detailed'}
               instantPolygon={instantPolygon}
-              onPolygonClear={() => setInstantPolygon([])}
+              onPolygonClear={() => {
+                setInstantPolygon([]);
+                setSelectedLocation(null);
+              }}
             />
           </div>
 

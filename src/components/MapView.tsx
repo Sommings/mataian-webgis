@@ -364,14 +364,23 @@ function MapView({
     setDrawingPoints((prev) => [...prev, [lat, lng]]);
   };
 
-  // 即時模式：確認受災多邊形並觸發回傳與選點（不計算中心點、不點選標記，直接儲存多邊形範圍）
+  // 即時模式：確認受災多邊形並計算幾何中心點位作為單一選點紀錄
   const handleConfirmPolygon = () => {
     if (drawingPoints.length < 3) {
       alert("請至少標記 3 個頂點以圈出災害範圍！");
       return;
     }
 
-    // 觸發多邊形確認並傳遞座標給 App.tsx
+    // 計算幾何中心點 (Centroid)
+    const latSum = drawingPoints.reduce((sum, pt) => sum + pt[0], 0);
+    const lngSum = drawingPoints.reduce((sum, pt) => sum + pt[1], 0);
+    const centerLat = latSum / drawingPoints.length;
+    const centerLng = lngSum / drawingPoints.length;
+
+    // 將中心點設為選取位置
+    onSelectLocation({ lat: centerLat, lng: centerLng });
+
+    // 觸發多邊形確認並傳遞座標給 App.tsx (用於地圖上當前多邊形的顯示渲染)
     if (onPolygonConfirm) {
       onPolygonConfirm(drawingPoints);
     }
