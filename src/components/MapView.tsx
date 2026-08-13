@@ -448,8 +448,8 @@ function MapView({
               layer.bindPopup(
                 `<div style="font-size: 14px; min-width: 170px;">
                   <p style="margin: 0 0 6px 0; font-weight: 700; color: #047857; font-size: 15px;">台糖公司可供釋出土地 (花蓮縣)</p>
-                  <p style="margin: 0 0 4px 0;"><strong>使用分區 (LandUsageZoneName)：</strong>${zone}</p>
-                  <p style="margin: 0 0 2px 0;"><strong>活化方式 (RevitalizationMethodName)：</strong>${method}</p>
+                  <p style="margin: 0 0 4px 0;"><strong>使用分區：</strong>${zone}</p>
+                  <p style="margin: 0 0 2px 0;"><strong>活化方式：</strong>${method}</p>
                 </div>`
               );
             }
