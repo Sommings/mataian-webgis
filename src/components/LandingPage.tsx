@@ -622,7 +622,7 @@ export default function LandingPage({
         <div>
           <span>系統版本 v1.3.0 (Disfactory 專案介紹首頁版)</span>
           <span style={{ margin: "0 8px", color: "#cbd5e1" }}>|</span>
-          <span>最後更新：2026-05-29</span>
+          <span>最後更新：2026-08-14</span>
         </div>
         <div>
           <span>開發團隊：<a href="https://www.facebook.com/NCCULUPMCLUB/" target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", textDecoration: "none", fontWeight: 600 }}>政大國土服務團</a> &copy; {new Date().getFullYear()}</span>
