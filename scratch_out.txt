@@ -1,0 +1,5 @@
+FID 1: zb=道路, mb=出租
+FID 2: zb=商業區, mb=出租
+FID 3: zb=商業區, mb=出租
+FID 4: zb=農業區, mb=出租
+FID 5: zb=農業區, mb=出租

@@ -204,6 +204,7 @@ function MapView({
   const [isSearching, setIsSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [reserveGeojson, setReserveGeojson] = useState<any>(null);
+  const [taiSugarGeojson, setTaiSugarGeojson] = useState<any>(null);
   const [addressDb, setAddressDb] = useState<{ a: string, x: number, y: number }[]>([]);
   const [lightboxData, setLightboxData] = useState<{ photos: string[]; index: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
@@ -219,6 +220,11 @@ function MapView({
       .then((res) => res.json())
       .then((data) => setReserveGeojson(data))
       .catch((err) => console.error("無法載入原住民保留地 GeoJSON:", err));
+
+    fetch(`${import.meta.env.BASE_URL}taisugar_hualien.geojson`)
+      .then((res) => res.json())
+      .then((data) => setTaiSugarGeojson(data))
+      .catch((err) => console.error("無法載入台糖土地 GeoJSON:", err));
 
     fetch(`${import.meta.env.BASE_URL}address_db.json`)
       .then((res) => res.json())
@@ -412,6 +418,38 @@ function MapView({
                   <p style="margin: 0 0 3px 0;"><strong>縣市：</strong>${props["縣市名"] || ""}</p>
                   <p style="margin: 0 0 3px 0;"><strong>鄉鎮：</strong>${props["鄉鎮名"] || ""}</p>
                   <p style="margin: 0 0 3px 0;"><strong>地段名：</strong>${props["地段名"] || ""}</p>
+                </div>`
+              );
+            }
+          }}
+        />
+      )}
+    </FeatureGroup>
+  );
+
+  const taiSugarGeojsonLayer = (
+    <FeatureGroup>
+      {taiSugarGeojson && (
+        <GeoJSON
+          key={taiSugarGeojson.features ? taiSugarGeojson.features.length : "loaded_ts"}
+          data={taiSugarGeojson}
+          style={{
+            color: "#059669",
+            weight: 2,
+            opacity: 0.85,
+            fillColor: "#10b981",
+            fillOpacity: 0.5,
+          }}
+          onEachFeature={(feature, layer) => {
+            if (feature.properties) {
+              const props = feature.properties;
+              const zone = props.LandUsageZoneName || "未提供";
+              const method = props.RevitalizationMethodName || props.RevitalizartionMethodName || "未提供";
+              layer.bindPopup(
+                `<div style="font-size: 14px; min-width: 170px;">
+                  <p style="margin: 0 0 6px 0; font-weight: 700; color: #047857; font-size: 15px;">台糖公司土地 (花蓮縣)</p>
+                  <p style="margin: 0 0 4px 0;"><strong>使用分區 (LandUsageZoneName)：</strong>${zone}</p>
+                  <p style="margin: 0 0 2px 0;"><strong>活化方式 (RevitalizationMethodName)：</strong>${method}</p>
                 </div>`
               );
             }
@@ -685,6 +723,10 @@ function MapView({
 
             <LayersControl.Overlay name="原住民保留地(萬榮.鳳林.光復)(113年資料)">
               {reserveGeojsonLayer}
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay name="台糖公司土地 (花蓮縣)">
+              {taiSugarGeojsonLayer}
             </LayersControl.Overlay>
 
             <LayersControl.Overlay name="花蓮縣光復鄉地籍圖(107年資料)">
