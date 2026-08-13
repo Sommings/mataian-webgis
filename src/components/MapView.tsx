@@ -700,6 +700,15 @@ function MapView({
               )}
             </LayersControl.Overlay>
 
+            <LayersControl.Overlay name="公有土地圖層 (國土測繪服務雲)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url="https://wmts.nlsc.gov.tw/wmts/LAND_OPENDATA/default/GoogleMapsCompatible/{z}/{y}/{x}"
+                maxZoom={20}
+                opacity={0.75}
+              />
+            </LayersControl.Overlay>
+
             <LayersControl.Overlay name="都市計畫土地使用分區圖">
               <TileLayer
                 attribution="&copy; 花蓮縣政府"
