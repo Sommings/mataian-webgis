@@ -683,11 +683,11 @@ function MapView({
               />
             </LayersControl.Overlay>
 
-            <LayersControl.Overlay name="113年原住民保留地(萬榮.鳳林.光復)">
+            <LayersControl.Overlay name="原住民保留地(萬榮.鳳林.光復)(113年資料)">
               {reserveGeojsonLayer}
             </LayersControl.Overlay>
 
-            <LayersControl.Overlay name="107年花蓮縣光復鄉地籍圖">
+            <LayersControl.Overlay name="花蓮縣光復鄉地籍圖(107年資料)">
               {zoomLevel >= 13 && (
                 <TileLayer
                   attribution="&copy; 花蓮縣光復地政事務所"
@@ -808,7 +808,7 @@ function MapView({
           <ZoomTracker
             onZoomChange={setZoomLevel}
             onOverlayToggle={(name, enabled) => {
-              if (name === "107年光復鄉地籍圖") {
+              if (name.includes("光復鄉地籍圖")) {
                 setCadastralEnabled(enabled);
               }
             }}
