@@ -210,6 +210,9 @@ function MapView({
   const [isLocating, setIsLocating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(13);
   const [cadastralEnabled, setCadastralEnabled] = useState(false);
+  const [nationalLandGeojson, setNationalLandGeojson] = useState<any>(null);
+  const [isNationalLandLoading, setIsNationalLandLoading] = useState(false);
+  const [nationalLandEnabled, setNationalLandEnabled] = useState(false);
 
   // PPGIS 多邊形災害範圍繪製 State
   const [isDrawing, setIsDrawing] = useState(false);
@@ -231,6 +234,22 @@ function MapView({
       .then((data) => setAddressDb(data))
       .catch((err) => console.error("載入本地門牌資料庫失敗：", err));
   }, []);
+
+  useEffect(() => {
+    if (nationalLandEnabled && !nationalLandGeojson && !isNationalLandLoading) {
+      setIsNationalLandLoading(true);
+      fetch(`${import.meta.env.BASE_URL}hualien_national_land.geojson`)
+        .then((res) => res.json())
+        .then((data) => {
+          setNationalLandGeojson(data);
+          setIsNationalLandLoading(false);
+        })
+        .catch((err) => {
+          console.error("無法載入花蓮縣國有土地 GeoJSON:", err);
+          setIsNationalLandLoading(false);
+        });
+    }
+  }, [nationalLandEnabled, nationalLandGeojson, isNationalLandLoading]);
 
   // 重置即時模式的繪圖 State，如果 mapMode 切換
   useEffect(() => {
@@ -459,6 +478,57 @@ function MapView({
     </FeatureGroup>
   );
 
+  const nationalLandGeojsonLayer = (
+    <FeatureGroup>
+      {nationalLandGeojson && (
+        <GeoJSON
+          key={nationalLandGeojson.features ? nationalLandGeojson.features.length : "loaded_nl"}
+          data={nationalLandGeojson}
+          style={{
+            color: "#1d4ed8",
+            weight: 1.5,
+            opacity: 0.85,
+            fillColor: "#3b82f6",
+            fillOpacity: 0.4,
+          }}
+          onEachFeature={(feature, layer) => {
+            if (feature.properties) {
+              const props = feature.properties;
+              const county = props["縣市"] || props["c"] || "未提供";
+              const town = props["鄉鎮市區"] || props["t"] || "未提供";
+              const sectCode = props["段代碼"] || props["sc"] || "未提供";
+              const sectName = props["段小段"] || props["sn"] || "未提供";
+              const landNo = props["地號"] || props["n"] || "未提供";
+              const rawLandNo = props["地號原碼"] || props["rn"] || "未提供";
+              const valM2 = props["登記面積_m2"] ?? props["m2"];
+              const areaM2 = valM2 != null ? `${Number(valM2).toLocaleString()} m²` : "未提供";
+              const valHa = props["登記面積_ha"] ?? props["ha"];
+              const areaHa = valHa != null ? `${valHa} 公頃` : "未提供";
+              const manager = props["管理機關"] || props["m"] || "未提供";
+              const owner = props["所有權人"] || props["o"] || "未提供";
+
+              layer.bindPopup(
+                `<div style="font-size: 14px; min-width: 220px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.55;">
+                  <div style="background-color: #eff6ff; padding: 8px 12px; margin: -10px -10px 10px -10px; border-bottom: 2px solid #3b82f6; border-radius: 4px 4px 0 0;">
+                    <h4 style="margin: 0; color: #1e40af; font-size: 15px; font-weight: 700;">🏛️ 花蓮縣國有土地</h4>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 4px; color: #334155;">
+                    <p style="margin: 0;"><strong>📍 行政區劃：</strong>${county} ${town}</p>
+                    <p style="margin: 0;"><strong>🏷️ 地段名稱：</strong>${sectName} <span style="color: #64748b; font-size: 12px;">(${sectCode})</span></p>
+                    <p style="margin: 0;"><strong>🔢 地號：</strong><span style="color: #0284c7; font-weight: 700;">${landNo}</span> <span style="color: #64748b; font-size: 12px;">(原碼: ${rawLandNo})</span></p>
+                    <p style="margin: 0;"><strong>📐 登記面積：</strong>${areaM2} <span style="color: #64748b; font-size: 12px;">(${areaHa})</span></p>
+                    <p style="margin: 0;"><strong>🏢 管理機關：</strong><span style="color: #15803d; font-weight: 600;">${manager}</span></p>
+                    <p style="margin: 0;"><strong>👤 所有權人：</strong>${owner}</p>
+                  </div>
+                </div>`
+              );
+            }
+          }}
+        />
+      )}
+    </FeatureGroup>
+  );
+
   return (
     <div>
       <div className="map-search-bar">
@@ -613,6 +683,34 @@ function MapView({
           </div>
         )}
 
+        {/* 載入中橫幅 */}
+        {isNationalLandLoading && (
+          <div
+            style={{
+              position: "absolute",
+              top: "16px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              backgroundColor: "rgba(30, 58, 138, 0.95)",
+              color: "white",
+              padding: "10px 22px",
+              borderRadius: "30px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.25)",
+              fontSize: "14px",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              backdropFilter: "blur(4px)",
+              animation: "fadeIn 0.2s ease-out",
+            }}
+          >
+            <div className="locate-spinner"></div>
+            <span>正在加載花蓮縣公有土地圖層資料 (含屬性資料)...</span>
+          </div>
+        )}
+
         {/* 縮放警告提示橫幅 */}
         {cadastralEnabled && zoomLevel < 13 && (
           <div
@@ -727,6 +825,10 @@ function MapView({
 
             <LayersControl.Overlay name="台糖公司可供釋出土地 (花蓮縣)">
               {taiSugarGeojsonLayer}
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay name="花蓮縣公有土地(含屬性資料)">
+              {nationalLandGeojsonLayer}
             </LayersControl.Overlay>
 
             <LayersControl.Overlay name="花蓮縣光復鄉地籍圖(107年資料)">
@@ -852,6 +954,9 @@ function MapView({
             onOverlayToggle={(name, enabled) => {
               if (name.includes("光復鄉地籍圖")) {
                 setCadastralEnabled(enabled);
+              }
+              if (name.includes("國有土地") || name.includes("公有土地")) {
+                setNationalLandEnabled(enabled);
               }
             }}
           />
