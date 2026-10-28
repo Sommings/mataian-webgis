@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>馬太鞍災後影像對照</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  /* Layout: map fills the screen; a catalog panel sits on the left (stacked under the map on phones). */
+  :root {
+    --bg: #f3f5f2;
+    --panel: #ffffff;
+    --fg: #1d2a24;
+    --muted: #5b6b63;
+    --line: #d5ddd8;
+    --accent: #1f6f5c;        /* river-valley green */
+    --accent-soft: #e2efe9;
+    --pre: #6b7280;           /* 災前 */
+    --resp: #b4531c;          /* 災後應變 */
+    --recent: #1f6f5c;        /* 2026 最新 */
+    --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121815; --panel: #1a221e; --fg: #e4ebe7; --muted: #9aaba2; --line: #2d3a33;
+      --accent: #5cc3a5; --accent-soft: #1f322b; --pre: #9ca3af; --resp: #f08c4f; --recent: #5cc3a5;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121815; --panel: #1a221e; --fg: #e4ebe7; --muted: #9aaba2; --line: #2d3a33;
+    --accent: #5cc3a5; --accent-soft: #1f322b; --pre: #9ca3af; --resp: #f08c4f; --recent: #5cc3a5;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { background: var(--bg); color: var(--fg); font: 14px/1.6 var(--font-body); }
+  .app { display: grid; grid-template-columns: 380px 1fr; height: 100%; }
+  .panel { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; min-width: 0;
+    padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+    display: flex; flex-direction: column; gap: 20px; }
+  .mapwrap { position: relative; min-width: 0; }
+  #map { position: absolute; inset: 0; background: #2b302d; }
+
+  h1 { font-size: 22px; line-height: 1.3; margin: 0; text-wrap: balance; }
+  h2 { font-size: 13px; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 500; }
+  p { margin: 0; }
+  .lede { color: var(--muted); }
+
+  .controls { display: grid; gap: 10px; }
+  .row { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center; }
+  .row label { color: var(--muted); font-size: 13px; }
+  select { width: 100%; min-width: 0; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { font: inherit; border: 0; background: transparent; color: var(--fg); padding: 5px 12px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--panel); }
+  .check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+  .jumps { display: flex; flex-wrap: wrap; gap: 6px; }
+  .jumps button, .card button { font: inherit; font-size: 13px; color: var(--accent); background: var(--accent-soft); border: 1px solid transparent; border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+  .jumps button:hover, .card button:hover { border-color: var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible, .handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .findings { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .findings li { padding-left: 12px; border-left: 3px solid var(--line); }
+  .findings li.recent { border-color: var(--recent); }
+  .findings li.resp { border-color: var(--resp); }
+  .findings b { font-weight: 700; }
+
+  .group { display: grid; gap: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 4px; }
+  .card.on-left { box-shadow: inset 4px 0 0 var(--accent); }
+  .card.on-right { box-shadow: inset -4px 0 0 var(--accent); }
+  .card.on-left.on-right { box-shadow: inset 4px 0 0 var(--accent), inset -4px 0 0 var(--accent); }
+  .card-head { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+  .card-title { font-weight: 700; }
+  .date { font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip { display: inline-block; font-size: 11.5px; letter-spacing: .04em; border-radius: 4px; padding: 0 6px; border: 1px solid currentColor; }
+  .chip.pre { color: var(--pre); } .chip.resp { color: var(--resp); } .chip.recent { color: var(--recent); }
+  .meta { color: var(--muted); font-size: 12.5px; }
+  .card .btns { display: flex; gap: 6px; margin-top: 4px; }
+  .card.viewonly { border-style: dashed; }
+  a { color: var(--accent); }
+  .sources { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+
+  /* swipe divider */
+  .divider { position: absolute; top: 0; bottom: 0; width: 0; z-index: 800; pointer-events: none; }
+  .divider::before { content: ""; position: absolute; top: 0; bottom: 0; left: -1px; width: 2px; background: #fff; box-shadow: 0 0 4px rgba(0,0,0,.6); }
+  .handle { position: absolute; top: 50%; left: -18px; width: 36px; height: 36px; margin-top: -18px; border-radius: 50%;
+    background: #fff; color: #1d2a24; display: grid; place-items: center; font-size: 15px; cursor: ew-resize; pointer-events: auto;
+    box-shadow: 0 1px 6px rgba(0,0,0,.45); touch-action: none; user-select: none; }
+  .tag { position: absolute; top: 10px; z-index: 790; max-width: 45%; padding: 4px 10px; border-radius: 6px; font-size: 12.5px;
+    background: rgba(18,24,21,.78); color: #f3f5f2; pointer-events: none; }
+  .tag.left { left: 54px; } .tag.right { right: 10px; text-align: right; }
+  .readout { position: absolute; left: 54px; top: 44px; z-index: 790; font: 12px var(--font-mono); background: rgba(18,24,21,.7); color: #f3f5f2; padding: 2px 8px; border-radius: 4px; pointer-events: none; }
+  .leaflet-container { font-family: var(--font-body); }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 62vh auto; height: auto; }
+    .mapwrap { order: -1; height: 62vh; }
+    .panel { border-right: 0; border-top: 1px solid var(--line); overflow: visible; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+    .tag { max-width: 42%; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <header style="display:grid;gap:6px">
+      <h1>馬太鞍災後影像對照</h1>
+      <p class="lede">彙整截至 2026/10/28 可公開取得、涵蓋花蓮縣光復鄉的航照與衛星影像。左右各選一期影像，拖曳地圖中間的分隔線就能比對。</p>
+    </header>
+
+    <section class="controls" aria-label="圖層控制">
+      <div class="row"><label for="leftSel">左側</label><select id="leftSel"></select></div>
+      <div class="row"><label for="rightSel">右側</label><select id="rightSel"></select></div>
+      <div class="toggles">
+        <div class="seg" role="group" aria-label="顯示模式">
+          <button type="button" id="modeSwipe" aria-pressed="true">左右對照</button>
+          <button type="button" id="modeSingle" aria-pressed="false">只看左側</button>
+        </div>
+        <label class="check"><input type="checkbox" id="labels"> 疊加道路與地名</label>
+      </div>
+      <div class="jumps" aria-label="快速定位">
+        <button type="button" data-jump="23.6694,121.4233,16">光復市區</button>
+        <button type="button" data-jump="23.6887,121.4091,16">馬太鞍溪橋</button>
+        <button type="button" data-jump="23.6780,121.4300,14">泥流淤積範圍</button>
+        <button type="button" data-jump="23.6993,121.3001,14">堰塞湖與崩塌地</button>
+        <button type="button" data-jump="23.80,121.45,10">花蓮縣中段</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>重點</h2>
+      <ul class="findings">
+        <li class="resp"><b>最新的高解析開放影像：2025/11/16 航照。</b>航遙測分署拍攝，經國土測繪中心 WMTS 發布，可放大到看清單棟建物，涵蓋光復市區。</li>
+        <li class="recent"><b>2026 年的開放衛星影像只有 Sentinel-2。</b>解析度 10 m，大約每 5 天拍一次。光復上空較晴朗的近期日期是 2026/10/01 和 09/26，2026/06/03 最清楚。</li>
+        <li class="recent"><b>福衛八號 2026/04/09 有拍到光復，</b>但目前只能在 NCDR 監測圖台上看，沒有開放圖磚。</li>
+        <li><b>常見的底圖在光復都還是災前畫面：</b>國土測繪中心通用正射（2023）、114 年正射、Esri（2021/06/03）、花蓮縣正射影像。</li>
+      </ul>
+    </section>
+
+    <section id="catalog" aria-label="影像清單"></section>
+
+    <section class="sources">
+      <h2>資料來源</h2>
+      <a href="https://wmts.nlsc.gov.tw/wmts?SERVICE=WMTS&amp;REQUEST=GetCapabilities" target="_blank" rel="noopener">國土測繪中心 WMTS（GetCapabilities）</a>
+      <a href="https://watch.ncdr.nat.gov.tw/watch_barrier_map_v2" target="_blank" rel="noopener">NCDR 馬太鞍溪堰塞湖監測（福衛八號）</a>
+      <a href="https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a" target="_blank" rel="noopener">Microsoft Planetary Computer：Sentinel-2 L2A</a>
+      <a href="https://browser.dataspace.copernicus.eu/" target="_blank" rel="noopener">Copernicus Browser（查更新的 Sentinel-2 日期）</a>
+      <a href="https://s2maps.eu/" target="_blank" rel="noopener">EOX Sentinel-2 cloudless</a>
+      <p>本頁只引用各單位的線上圖磚，不保存影像。</p>
+    </section>
+  </aside>
+
+  <main class="mapwrap">
+    <div id="map" aria-label="影像對照地圖"></div>
+    <div class="divider" id="divider"><div class="handle" id="handle" tabindex="0" role="slider" aria-label="分隔線位置" aria-valuemin="2" aria-valuemax="98" aria-valuenow="50">⇔</div></div>
+    <div class="tag left" id="tagLeft"></div>
+    <div class="tag right" id="tagRight"></div>
+    <div class="readout" id="readout"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const NLSC = (id) => `https://wmts.nlsc.gov.tw/wmts/${id}/default/GoogleMapsCompatible/{z}/{y}/{x}`;
+const PC = (item) => "https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/{z}/{x}/{y}@1x.png"
+  + `?collection=sentinel-2-l2a&item=${item}&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0`;
+
+const ATTR = {
+  nlsc: "&copy; 內政部國土測繪中心",
+  asrs: "&copy; 農業部林業及自然保育署航測及遙測分署（經國土測繪中心 WMTS）",
+  s2: "Contains modified Copernicus Sentinel data 2026 · tiles: Microsoft Planetary Computer",
+  eox: "Sentinel-2 cloudless 2024 by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024), CC BY-NC-SA 4.0",
+  esri: "Tiles &copy; Esri and its imagery providers",
+  hl: "&copy; 花蓮縣政府",
+};
+
+// 航遙測分署災後航照：每個日期分成數個條帶圖層。town = 有涵蓋光復市區（其餘只拍上游崩塌地與堰塞湖）。
+const ASRS_FLIGHTS = [
+  ["20250925", 3, true], ["20250927", 3, true], ["20250928", 2, true], ["20250929", 2, false],
+  ["20250930", 2, false], ["20251001", 1, false], ["20251002", 3, false], ["20251003", 7, true],
+  ["20251004", 3, false], ["20251005", 3, false], ["20251006", 3, false], ["20251007", 3, true],
+  ["20251013", 9, true], ["20251116", 8, true],
+];
+const fmt = (d) => `${d.slice(0, 4)}/${d.slice(4, 6)}/${d.slice(6, 8)}`;
+
+const SOURCES = [
+  { id: "s2_20261021", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "Sentinel-2", date: "2026/10/21",
+    meta: "目前最新一景，但光復上空雲多。", urls: [PC("S2B_MSIL2A_20261021T022729_R046_T51QUG_20261021T043518")], max: 15, attr: ATTR.s2 },
+  { id: "s2_20261001", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "Sentinel-2", date: "2026/10/01",
+    meta: "光復市區大致無雲，適合當「最新現況」。", urls: [PC("S2B_MSIL2A_20261001T022529_R046_T51QUG_20261001T043628")], max: 15, attr: ATTR.s2 },
+  { id: "s2_20260926", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "Sentinel-2", date: "2026/09/26",
+    meta: "馬太鞍溪河谷清楚。", urls: [PC("S2C_MSIL2A_20260926T022531_R046_T51QUG_20260926T055310")], max: 15, attr: ATTR.s2 },
+  { id: "s2_20260703", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "Sentinel-2", date: "2026/07/03",
+    meta: "局部有雲。", urls: [PC("S2B_MSIL2A_20260703T022529_R046_T51QUG_20260703T043627")], max: 15, attr: ATTR.s2 },
+  { id: "s2_20260603", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "Sentinel-2", date: "2026/06/03",
+    meta: "2026 年最清楚的一景。", urls: [PC("S2B_MSIL2A_20260603T022529_R046_T51QUG_20260603T074711")], max: 15, attr: ATTR.s2 },
+  { id: "fs8", group: "2026 衛星（Sentinel-2，10 m）", stage: "recent", name: "福衛八號", date: "2026/04/09", viewOnly: true,
+    meta: "國家太空中心提供，NCDR 監測圖台展示（兩幅，涵蓋堰塞湖到光復市區，東半部有雲）。沒有開放圖磚，要放進專案需另向 NCDR／國家太空中心洽詢授權。",
+    link: "https://watch.ncdr.nat.gov.tw/watch_barrier_map_v2" },
+
+  ...ASRS_FLIGHTS.slice().reverse().map(([d, n, town]) => ({
+    id: `asrs_${d}`, group: "災後航照（航遙測分署）", stage: "resp", name: "災後航照", date: fmt(d),
+    meta: (town ? "涵蓋光復市區與上游。" : "只涵蓋上游崩塌地與堰塞湖。") + `由 ${n} 個條帶圖層組成。`,
+    urls: Array.from({ length: n }, (_, i) => NLSC(`Asrs_${d}_${i + 1}`)), max: 20, attr: ATTR.asrs,
+  })),
+
+  { id: "asrs_pre", group: "災前與一般底圖", stage: "pre", name: "馬太鞍溪災前航照", date: "2024–2025",
+    meta: "航遙測分署整理的災前鑲嵌，適合和災後航照直接比對。", urls: [NLSC("Asrs_2025_ortho")], max: 20, attr: ATTR.asrs },
+  { id: "photo2025", group: "災前與一般底圖", stage: "pre", name: "114 年正射影像", date: "2025",
+    meta: "全臺年度正射。光復一帶拍攝時間在災前。", urls: [NLSC("PHOTO2025")], max: 20, attr: ATTR.nlsc },
+  { id: "photo2", group: "災前與一般底圖", stage: "pre", name: "正射影像（通用）", date: "光復為 2023",
+    meta: "國土測繪中心的通用正射底圖，各地拍攝年度不同，光復一帶浮水印為 2023。", urls: [NLSC("PHOTO2")], max: 20, attr: ATTR.nlsc },
+  { id: "eox2024", group: "災前與一般底圖", stage: "pre", name: "Sentinel-2 cloudless", date: "2024",
+    meta: "EOX 全年無雲鑲嵌，10 m。限非商業使用（CC BY-NC-SA 4.0）。", urls: ["https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg"], max: 15, attr: ATTR.eox },
+  { id: "esri", group: "災前與一般底圖", stage: "pre", name: "Esri World Imagery", date: "光復為 2021/06/03",
+    meta: "Esri 中繼資料顯示光復一帶是 2021 年 GeoEye-1 影像（0.46 m）。非開放授權。", urls: ["https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"], max: 19, attr: ATTR.esri },
+  { id: "hl", group: "災前與一般底圖", stage: "pre", name: "花蓮縣正射影像", date: "災前",
+    meta: "WebGIS 目前使用的衛星底圖。z14 以下（含 WebGIS 預設的 z13）只顯示空白圖框；z15 起才有影像，但光復西側山區仍是空白，影像上也壓有圖框線與圖號。", urls: ["https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"], max: 20, attr: ATTR.hl },
+  { id: "emap", group: "災前與一般底圖", stage: "pre", name: "臺灣通用電子地圖", date: "向量底圖",
+    meta: "非影像，方便對照路名與地標。", urls: [NLSC("EMAP")], max: 20, attr: ATTR.nlsc },
+];
+const byId = Object.fromEntries(SOURCES.map((s) => [s.id, s]));
+const STAGE = { pre: "災前", resp: "災後應變", recent: "2026" };
+
+const state = { left: "photo2025", right: "asrs_20251116", mode: "swipe", ratio: 0.5 };
+
+const map = L.map("map", { zoomControl: true, maxZoom: 20, minZoom: 8 }).setView([23.6694, 121.4233], 15);
+const leftPane = map.createPane("leftPane");
+const rightPane = map.createPane("rightPane");
+const labelPane = map.createPane("labelPane");
+leftPane.style.zIndex = 200; rightPane.style.zIndex = 210; labelPane.style.zIndex = 450;
+labelPane.style.pointerEvents = "none";
+
+function makeLayer(src, pane) {
+  return L.layerGroup(src.urls.map((u) => L.tileLayer(u, {
+    pane, maxZoom: 20, maxNativeZoom: src.max, attribution: src.attr,
+  })));
+}
+
+let leftLayer = null, rightLayer = null;
+const labelLayer = L.tileLayer(NLSC("EMAP2"), { pane: "labelPane", maxZoom: 20, maxNativeZoom: 19, attribution: ATTR.nlsc });
+
+function render() {
+  if (leftLayer) map.removeLayer(leftLayer);
+  if (rightLayer) map.removeLayer(rightLayer);
+  leftLayer = makeLayer(byId[state.left], "leftPane").addTo(map);
+  rightLayer = state.mode === "swipe" ? makeLayer(byId[state.right], "rightPane").addTo(map) : null;
+  document.getElementById("leftSel").value = state.left;
+  document.getElementById("rightSel").value = state.right;
+  document.getElementById("rightSel").disabled = state.mode !== "swipe";
+  document.getElementById("modeSwipe").setAttribute("aria-pressed", state.mode === "swipe");
+  document.getElementById("modeSingle").setAttribute("aria-pressed", state.mode !== "swipe");
+  document.getElementById("divider").hidden = state.mode !== "swipe";
+  const label = (s) => `${s.name}　${s.date}`;
+  document.getElementById("tagLeft").textContent = "左｜" + label(byId[state.left]);
+  document.getElementById("tagRight").textContent = state.mode === "swipe" ? "右｜" + label(byId[state.right]) : "";
+  document.getElementById("tagRight").hidden = state.mode !== "swipe";
+  document.querySelectorAll(".card[data-id]").forEach((c) => {
+    c.classList.toggle("on-left", c.dataset.id === state.left);
+    c.classList.toggle("on-right", state.mode === "swipe" && c.dataset.id === state.right);
+  });
+  updateClip();
+}
+
+// Clip the two panes at the divider (same approach as leaflet-side-by-side).
+function updateClip() {
+  const size = map.getSize();
+  const nw = map.containerPointToLayerPoint([0, 0]);
+  const se = map.containerPointToLayerPoint(size);
+  if (state.mode !== "swipe") {
+    leftPane.style.clip = "auto";
+    return;
+  }
+  const clipX = nw.x + size.x * state.ratio;
+  leftPane.style.clip = `rect(${nw.y}px, ${clipX}px, ${se.y}px, ${nw.x}px)`;
+  rightPane.style.clip = `rect(${nw.y}px, ${se.x}px, ${se.y}px, ${clipX}px)`;
+  const divider = document.getElementById("divider");
+  divider.style.left = `${state.ratio * 100}%`;
+  document.getElementById("handle").setAttribute("aria-valuenow", Math.round(state.ratio * 100));
+}
+map.on("move zoom resize", updateClip);
+
+function updateReadout() {
+  const c = map.getCenter();
+  document.getElementById("readout").textContent = `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)} · z${map.getZoom()}`;
+}
+map.on("moveend zoomend", updateReadout);
+
+// Divider drag
+const handle = document.getElementById("handle");
+L.DomEvent.disableClickPropagation(document.getElementById("divider"));
+let dragging = false;
+handle.addEventListener("pointerdown", (e) => { dragging = true; handle.setPointerCapture(e.pointerId); map.dragging.disable(); e.preventDefault(); });
+handle.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  const r = map.getContainer().getBoundingClientRect();
+  state.ratio = Math.min(0.98, Math.max(0.02, (e.clientX - r.left) / r.width));
+  updateClip();
+});
+const stopDrag = () => { if (dragging) { dragging = false; map.dragging.enable(); } };
+handle.addEventListener("pointerup", stopDrag);
+handle.addEventListener("pointercancel", stopDrag);
+handle.addEventListener("keydown", (e) => {
+  const step = e.shiftKey ? 0.1 : 0.02;
+  if (e.key === "ArrowLeft") state.ratio = Math.max(0.02, state.ratio - step);
+  else if (e.key === "ArrowRight") state.ratio = Math.min(0.98, state.ratio + step);
+  else return;
+  e.preventDefault(); updateClip();
+});
+
+// Selects (grouped)
+function fillSelect(sel) {
+  const groups = {};
+  SOURCES.filter((s) => !s.viewOnly).forEach((s) => (groups[s.group] ||= []).push(s));
+  for (const [g, items] of Object.entries(groups)) {
+    const og = document.createElement("optgroup"); og.label = g;
+    items.forEach((s) => { const o = document.createElement("option"); o.value = s.id; o.textContent = `${s.date}　${s.name}`; og.appendChild(o); });
+    sel.appendChild(og);
+  }
+}
+const leftSel = document.getElementById("leftSel"), rightSel = document.getElementById("rightSel");
+fillSelect(leftSel); fillSelect(rightSel);
+leftSel.addEventListener("change", () => { state.left = leftSel.value; render(); });
+rightSel.addEventListener("change", () => { state.right = rightSel.value; render(); });
+document.getElementById("modeSwipe").addEventListener("click", () => { state.mode = "swipe"; render(); });
+document.getElementById("modeSingle").addEventListener("click", () => { state.mode = "single"; render(); });
+document.getElementById("labels").addEventListener("change", (e) => { e.target.checked ? labelLayer.addTo(map) : map.removeLayer(labelLayer); });
+document.querySelectorAll("[data-jump]").forEach((b) => b.addEventListener("click", () => {
+  const [lat, lng, z] = b.dataset.jump.split(",").map(Number);
+  map.setView([lat, lng], z);
+}));
+
+// Catalog cards
+const catalog = document.getElementById("catalog");
+const groups = {};
+SOURCES.forEach((s) => (groups[s.group] ||= []).push(s));
+for (const [g, items] of Object.entries(groups)) {
+  const sec = document.createElement("div"); sec.className = "group";
+  const h = document.createElement("h2"); h.textContent = g; sec.appendChild(h);
+  items.forEach((s) => {
+    const card = document.createElement("div");
+    card.className = "card" + (s.viewOnly ? " viewonly" : "");
+    if (!s.viewOnly) card.dataset.id = s.id;
+    const head = document.createElement("div"); head.className = "card-head";
+    const t = document.createElement("span"); t.className = "card-title"; t.textContent = s.name;
+    const right = document.createElement("span"); right.style.display = "inline-flex"; right.style.gap = "6px"; right.style.alignItems = "baseline";
+    const chip = document.createElement("span"); chip.className = `chip ${s.stage}`; chip.textContent = STAGE[s.stage];
+    const d = document.createElement("span"); d.className = "date"; d.textContent = s.date;
+    right.append(chip, d); head.append(t, right);
+    const m = document.createElement("p"); m.className = "meta"; m.textContent = s.meta;
+    card.append(head, m);
+    const btns = document.createElement("div"); btns.className = "btns";
+    if (s.viewOnly) {
+      const a = document.createElement("a"); a.href = s.link; a.target = "_blank"; a.rel = "noopener"; a.textContent = "到 NCDR 圖台看";
+      btns.appendChild(a);
+    } else {
+      const bl = document.createElement("button"); bl.type = "button"; bl.textContent = "放左側";
+      bl.addEventListener("click", () => { state.left = s.id; render(); });
+      const br = document.createElement("button"); br.type = "button"; br.textContent = "放右側";
+      br.addEventListener("click", () => { state.right = s.id; state.mode = "swipe"; render(); });
+      btns.append(bl, br);
+    }
+    card.appendChild(btns);
+    sec.appendChild(card);
+  });
+  catalog.appendChild(sec);
+}
+catalog.style.display = "grid"; catalog.style.gap = "20px";
+
+render();
+updateReadout();
+</script>
+</body>
+</html>

@@ -11,6 +11,7 @@ import {
   FeatureGroup,
   Polygon,      // 引入 Polygon 元件
   CircleMarker, // 引入 CircleMarker 元件
+  LayerGroup,   // 引入 LayerGroup 元件（組合多個條帶圖層）
 } from "react-leaflet";
 import type { Report } from "../types/report";
 import "leaflet/dist/leaflet.css";
@@ -71,6 +72,22 @@ const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
 const bounceIcon = createCustomIcon("bounce");
 const pulseIcon = createCustomIcon("pulse");
 const defaultIcon = createCustomIcon("default");
+
+const nlscTileUrl = (layer: string) =>
+  `https://wmts.nlsc.gov.tw/wmts/${layer}/default/GoogleMapsCompatible/{z}/{y}/{x}`;
+
+// 航遙測分署 2025/11/16 災後航照（經國土測繪中心 WMTS 發布），整期拆成 8 個條帶圖層
+const postDisasterAerialUrls = Array.from({ length: 8 }, (_, i) =>
+  nlscTileUrl(`Asrs_20251116_${i + 1}`)
+);
+
+// Sentinel-2 L2A，由 Microsoft Planetary Computer 出圖磚。
+// 換日期時改成新的 item id（STAC 查 collection sentinel-2-l2a、圖幅 T51QUG）
+const sentinel2Date = "2026/10/01";
+const sentinel2Item = "S2B_MSIL2A_20261001T022529_R046_T51QUG_20261001T043628";
+const sentinel2TileUrl =
+  "https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/{z}/{x}/{y}@1x.png" +
+  `?collection=sentinel-2-l2a&item=${sentinel2Item}&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0`;
 
 function MapUpdater({ center }: { center: [number, number] | null }) {
   const map = useMap();
@@ -770,6 +787,36 @@ function MapView({
               />
             </LayersControl.BaseLayer>
 
+            <LayersControl.BaseLayer name={`最新衛星影像 ${sentinel2Date} (Sentinel-2, 10m)`}>
+              <TileLayer
+                attribution="Contains modified Copernicus Sentinel data 2026 &middot; Microsoft Planetary Computer"
+                url={sentinel2TileUrl}
+                maxNativeZoom={15}
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
+
+            <LayersControl.BaseLayer name="災後航照 2025/11/16 (航遙測分署)">
+              <LayerGroup>
+                {postDisasterAerialUrls.map((url) => (
+                  <TileLayer
+                    key={url}
+                    attribution="&copy; 農業部林業及自然保育署航測及遙測分署、內政部國土測繪中心"
+                    url={url}
+                    maxZoom={20}
+                  />
+                ))}
+              </LayerGroup>
+            </LayersControl.BaseLayer>
+
+            <LayersControl.BaseLayer name="國土測繪圖資服務雲-114年正射影像 (災前)">
+              <TileLayer
+                attribution="&copy; 內政部國土測繪中心"
+                url={nlscTileUrl("PHOTO2025")}
+                maxZoom={20}
+              />
+            </LayersControl.BaseLayer>
+
             <LayersControl.BaseLayer name="國土測繪圖資服務雲-混合地圖 (電子地圖)">
               <TileLayer
                 attribution="&copy; 內政部國土測繪中心"
@@ -786,12 +833,21 @@ function MapView({
               />
             </LayersControl.BaseLayer>
 
-            <LayersControl.BaseLayer name="花蓮縣正射影像 (空照圖)">
-              <TileLayer
-                attribution="&copy; 花蓮縣政府"
-                url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={20}
-              />
+            {/* 縣府圖磚在 z14 以下只有空白圖框，這幾層改用 114 年正射補上 */}
+            <LayersControl.BaseLayer name="花蓮縣正射影像 (災前空照圖)">
+              <LayerGroup>
+                <TileLayer
+                  attribution="&copy; 內政部國土測繪中心"
+                  url={nlscTileUrl("PHOTO2025")}
+                  maxZoom={14}
+                />
+                <TileLayer
+                  attribution="&copy; 花蓮縣政府"
+                  url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
+                  minZoom={15}
+                  maxZoom={20}
+                />
+              </LayerGroup>
             </LayersControl.BaseLayer>
 
             <LayersControl.Overlay name="鄉鎮市區界 (國土測繪服務雲)">
