@@ -49,6 +49,9 @@
 | 圖層 | 資料 | 檔案 |
 |---|---|---|
 | 鄉鎮市區界、村里界、段籍圖－段界 | 國土測繪中心 WMTS `TOWN`、`Village`、`LANDSECT` | |
+| 堤防用地範圍線（紅色，預設開啟） | 河川治理圖資（來源待補） | `public/堤防用地範圍線.json` |
+| 治理計畫線（橙色，預設開啟） | 河川治理圖資（來源待補） | `public/治理計畫線.json` |
+| 背水堤範圍（青色，預設開啟） | 河川治理圖資（來源待補） | `public/背水堤範圍.json` |
 | 公有土地圖層 | 國土測繪中心 WMTS `LAND_OPENDATA` | |
 | 原住民保留地（萬榮、鳳林、光復，113 年） | 113 年原住民保留地範圍圖 | `public/fataan_reserve.geojson` |
 | 台糖公司可供釋出土地（花蓮縣） | 台糖花蓮縣土地 GeoPackage | `public/taisugar_hualien.geojson` |

@@ -14,6 +14,7 @@ import {
   LayerGroup,   // 引入 LayerGroup 元件（組合多個條帶圖層）
 } from "react-leaflet";
 import type { Report } from "../types/report";
+import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
 import { Locate, Trash2, CheckCircle2, Play } from "lucide-react";
@@ -230,6 +231,9 @@ function MapView({
   const [nationalLandGeojson, setNationalLandGeojson] = useState<any>(null);
   const [isNationalLandLoading, setIsNationalLandLoading] = useState(false);
   const [nationalLandEnabled, setNationalLandEnabled] = useState(false);
+  const [dikeLandLineGeojson, setDikeLandLineGeojson] = useState<FeatureCollection | null>(null);
+  const [governanceLineGeojson, setGovernanceLineGeojson] = useState<FeatureCollection | null>(null);
+  const [backwaterDikeGeojson, setBackwaterDikeGeojson] = useState<FeatureCollection | null>(null);
 
   // PPGIS 多邊形災害範圍繪製 State
   const [isDrawing, setIsDrawing] = useState(false);
@@ -250,6 +254,21 @@ function MapView({
       .then((res) => res.json())
       .then((data) => setAddressDb(data))
       .catch((err) => console.error("載入本地門牌資料庫失敗：", err));
+
+    fetch(`${import.meta.env.BASE_URL}堤防用地範圍線.json`)
+      .then((res) => res.json())
+      .then((data) => setDikeLandLineGeojson(data))
+      .catch((err) => console.error("無法載入堤防用地範圍線 JSON:", err));
+
+    fetch(`${import.meta.env.BASE_URL}治理計畫線.json`)
+      .then((res) => res.json())
+      .then((data) => setGovernanceLineGeojson(data))
+      .catch((err) => console.error("無法載入治理計畫線 JSON:", err));
+
+    fetch(`${import.meta.env.BASE_URL}背水堤範圍.json`)
+      .then((res) => res.json())
+      .then((data) => setBackwaterDikeGeojson(data))
+      .catch((err) => console.error("無法載入背水堤範圍 JSON:", err));
   }, []);
 
   useEffect(() => {
@@ -431,6 +450,43 @@ function MapView({
     setIsDrawing(false);
     setDrawingPoints([]);
   };
+
+  // 河川治理相關圖層（堤防用地範圍線、治理計畫線、背水堤範圍）
+  const dikeLandLineLayer = (
+    <FeatureGroup>
+      {dikeLandLineGeojson && (
+        <GeoJSON
+          key={dikeLandLineGeojson.features.length}
+          data={dikeLandLineGeojson}
+          style={{ color: "#ef4444", weight: 3, opacity: 0.9, fillColor: "#ef4444", fillOpacity: 0.2 }}
+        />
+      )}
+    </FeatureGroup>
+  );
+
+  const governanceLineLayer = (
+    <FeatureGroup>
+      {governanceLineGeojson && (
+        <GeoJSON
+          key={governanceLineGeojson.features.length}
+          data={governanceLineGeojson}
+          style={{ color: "#f59e0b", weight: 3, opacity: 0.95 }}
+        />
+      )}
+    </FeatureGroup>
+  );
+
+  const backwaterDikeLayer = (
+    <FeatureGroup>
+      {backwaterDikeGeojson && (
+        <GeoJSON
+          key={backwaterDikeGeojson.features.length}
+          data={backwaterDikeGeojson}
+          style={{ color: "#06b6d4", weight: 3, opacity: 0.9, fillColor: "#06b6d4", fillOpacity: 0.25 }}
+        />
+      )}
+    </FeatureGroup>
+  );
 
   const reserveGeojsonLayer = (
     <FeatureGroup>
@@ -873,6 +929,18 @@ function MapView({
                 maxZoom={20}
                 opacity={0.8}
               />
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay checked name="堤防用地範圍線">
+              {dikeLandLineLayer}
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay checked name="治理計畫線">
+              {governanceLineLayer}
+            </LayersControl.Overlay>
+
+            <LayersControl.Overlay checked name="背水堤範圍">
+              {backwaterDikeLayer}
             </LayersControl.Overlay>
 
             <LayersControl.Overlay name="原住民保留地(萬榮.鳳林.光復)(113年資料)">
