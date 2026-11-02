@@ -146,3 +146,11 @@ docs/                   影像對照頁
 *.py                    圖資前處理腳本
 deploy.js               GitHub Pages 部署腳本
 ```
+
+
+---
+
+## 著作權 Copyright
+
+© 2026　吳昀慶 Yun-Ching Wu
+授權條款見 [`LICENSE`](LICENSE) 與 [`LICENSE-CONTENT`](LICENSE-CONTENT)　詳細聲明見 [`COPYRIGHT.md`](COPYRIGHT.md)
