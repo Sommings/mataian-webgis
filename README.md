@@ -22,6 +22,9 @@
 ### 即時災情填報
 回報道路中斷、積水、危險區域等需要提醒其他人注意的地點。可以標記單一點位，也可以在地圖上畫出多邊形的受災範圍。
 
+### LINE 回報（原型）
+居民可以直接在團隊的 LINE 官方帳號回報：傳位置、拍照、按按鈕選受災情況，也可以用說的。回報先存進待審核清單，志工確認後才會公開。設定與審核方式見 [`docs/line-bot.md`](docs/line-bot.md)。
+
 ### 地圖與圖層
 - **地址搜尋**：先查本地門牌資料庫（光復鄉、鳳林鎮、萬榮鄉約 1.3 萬筆門牌點位），查不到再用 Google Geocoding API，最後才用 OpenStreetMap Nominatim。
 - **定位**：用裝置定位跳到目前位置。
@@ -67,6 +70,7 @@
   - 資料表 `reports`：災情填報（欄位對應 `src/types/report.ts`，以 snake_case 儲存，例如 `report_date`、`has_land_damage`、`building_damage_level`、`photos`）
   - 資料表 `messages`：留言板（`MessageBoard` 元件，目前沒有放在頁面上）
   - Storage bucket `disaster_photos`：填報時上傳的照片
+  - LINE 回報：Edge Function `line-webhook`（Deno）、資料表 `line_sessions`、`line_reports`、私有 bucket `line_media`，見 [`docs/line-bot.md`](docs/line-bot.md)
 - **部署**：GitHub Pages（`gh-pages` 分支）
 
 ## 本機開發
@@ -142,7 +146,8 @@ src/
   lib/supabase.ts       Supabase client
   types/report.ts       填報資料型別
 public/                 GeoJSON、門牌資料庫、地籍圖磚
-docs/                   影像對照頁
+docs/                   影像對照頁、LINE 機器人說明
+supabase/               LINE 機器人的 Edge Function 與資料表 migration
 *.py                    圖資前處理腳本
 deploy.js               GitHub Pages 部署腳本
 ```
