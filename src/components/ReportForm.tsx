@@ -555,8 +555,8 @@ function ReportForm({
     textAlign: "center",
     fontSize: "13px",
     fontWeight: 700,
-    backgroundColor: currentStepIndex === index ? "#2563eb" : "#e8eef6",
-    color: currentStepIndex === index ? "#ffffff" : "#475569",
+    backgroundColor: currentStepIndex === index ? "#FEA900" : "#EFF1F0",
+    color: currentStepIndex === index ? "#000000" : "#505B54",
   });
 
   const stepLabelMap: Record<StepKey, string> = {
@@ -591,7 +591,7 @@ function ReportForm({
             cursor: "pointer",
             transition: "all 0.25s",
             backgroundColor: activeTab === "detailed" ? "#ffffff" : "transparent",
-            color: activeTab === "detailed" ? "#2563eb" : "#64748b",
+            color: activeTab === "detailed" ? "#000000" : "#64748b",
             boxShadow: activeTab === "detailed" ? "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)" : "none",
             display: "flex",
             alignItems: "center",
@@ -614,7 +614,7 @@ function ReportForm({
             cursor: "pointer",
             transition: "all 0.25s",
             backgroundColor: activeTab === "emergency" ? "#ffffff" : "transparent",
-            color: activeTab === "emergency" ? "#dc2626" : "#64748b",
+            color: activeTab === "emergency" ? "#000000" : "#64748b",
             boxShadow: activeTab === "emergency" ? "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)" : "none",
             display: "flex",
             alignItems: "center",
@@ -1260,7 +1260,7 @@ function ReportForm({
         <div style={{ animation: "fadeIn 0.3s ease-out" }}>
           <h3 style={{ ...sectionTitleStyle, color: "#dc2626" }}>即時災情快速填報</h3>
           <p style={sectionDescStyle}>
-            用於回報即時積水、道路中斷或危險區域。請先在地圖上點選或【繪製受災範圍】以帶入定位點。
+            用於回報即時積水、道路中斷或危險區域。請先用地圖下方的「地點回報」或「範圍回報」標記位置。
           </p>
 
           <div style={{ display: "grid", gap: "14px" }}>
@@ -1305,6 +1305,20 @@ function ReportForm({
                   🗑️ 清除多邊形災害範圍
                 </button>
               </div>
+            ) : selectedLocation ? (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "12px",
+                  backgroundColor: "#f0fdf4",
+                  border: "1.5px solid #bbf7d0",
+                  color: "#15803d",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                }}
+              >
+                <span>🟢</span> 已標記受災地點
+              </div>
             ) : (
               <div
                 style={{
@@ -1318,7 +1332,7 @@ function ReportForm({
                 }}
               >
                 <span>💡 提示：</span>
-                您可以點擊地圖直接選點，或是在地圖上方點選<strong>「📍 開始繪製範圍」</strong>按鈕，圈選出具體的受災多邊形範圍，以便國土服務團進行更細緻的空間圖資整理。
+                請先按「取消」回到地圖下方，選<strong>「地點回報」</strong>點選位置，或選<strong>「範圍回報」</strong>圈出受災範圍，以便國土服務團進行更細緻的空間圖資整理。
               </div>
             )}
 

@@ -17,7 +17,7 @@ import type { Report } from "../types/report";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import L, { type LeafletMouseEvent, type PathOptions } from "leaflet";
-import { Trash2, CheckCircle2, Play, Search } from "lucide-react";
+import { Trash2, Search } from "lucide-react";
 import { MapToolbar, MeasureLayer, type MeasureKind } from "./MapTools";
 import { GUANGFU_BOUNDS } from "../lib/guangfu";
 import LayerPanel, { type LayerOption, type OverlayState } from "./LayerPanel";
@@ -54,11 +54,21 @@ type MapViewProps = {
   reports: Report[];
   selectedLocation: SelectedLocation;
   onSelectLocation: (location: { lat: number; lng: number }) => void;
+  /** 地點回報：按下地圖上的「確認點位」 */
   onConfirmGeneralLocation?: () => void;
   lastSubmittedLocation?: SelectedLocation;
-  // query：只瀏覽，點地圖不選點；general、instant：沿用原本兩種填報
-  mapMode: 'query' | 'general' | 'instant';
+  // query：只瀏覽，點地圖不選點；point：地點回報（點選位置）；area：範圍回報（圈選多邊形）
+  mapMode: 'query' | 'point' | 'area';
+  /** 範圍回報：按下地圖上的「確認範圍」 */
   onPolygonConfirm?: (polygonPoints: [number, number][]) => void;
+  /** 範圍回報已確認的多邊形，顯示在地圖上 */
+  confirmedPolygon?: [number, number][];
+  /** 標記位置時按「取消」，回到選擇地點或範圍 */
+  onCancelDraw?: () => void;
+  /** 填報表單打開時不顯示地圖上方的操作提示（會被表單擋住） */
+  hideDrawHint?: boolean;
+  /** 範圍回報按「重畫」：清掉已確認的範圍 */
+  onClearPolygon?: () => void;
   /** 是否顯示已回報的災情點位與範圍（只在回報災情模式顯示） */
   showReports: boolean;
   /** 故事地圖模式：顯示區域標籤 */
@@ -86,6 +96,19 @@ const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
 };
 
 const bounceIcon = createCustomIcon("bounce");
+
+// 回報時在地圖上點的「確認點位」「確認範圍」按鈕
+const confirmIcon = (label: string, className: string) =>
+  new L.DivIcon({
+    className: "draw-confirm-marker",
+    html: `<span class="draw-confirm ${className}">${label}</span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+const confirmPointIcon = confirmIcon("確認點位", "above-pin");
+const confirmAreaIcon = confirmIcon("確認範圍", "beside-vertex");
+
+const isInstantReport = (report: Report) => report.address.startsWith("[🚨即時災情]");
 const pulseIcon = createCustomIcon("pulse");
 const defaultIcon = createCustomIcon("default");
 
@@ -124,17 +147,17 @@ const BASE_LAYERS: LayerOption[] = [
   { id: "aerial20251116", name: "航照 2025/11/16 (航遙測分署，只涵蓋馬太鞍溪流域)", group: "post" },
 ];
 
-const OVERLAYS = [
-  { id: "guangfu", name: "光復鄉界", on: false },
+const OVERLAYS: (LayerOption & { on: boolean })[] = [
+  { id: "guangfu", name: "光復鄉界", on: false, legend: { color: "#000000", dashed: true } },
   { id: "town", name: "鄉鎮市區界 (國土測繪服務雲)", on: false },
   { id: "village", name: "村里界 (國土測繪服務雲)", on: false },
   { id: "landsect", name: "段籍圖-段界 (國土測繪服務雲)", on: false },
-  { id: "dikeLand", name: "堤防用地範圍線", on: true },
-  { id: "governance", name: "治理計畫線", on: true },
-  { id: "backwater", name: "背水堤範圍", on: true },
-  { id: "reserve", name: "原住民保留地(萬榮.鳳林.光復)(113年資料)", on: false },
-  { id: "taisugar", name: "台糖公司可供釋出土地 (花蓮縣)", on: false },
-  { id: "nationalLand", name: "花蓮縣公有土地(含屬性資料)", on: false },
+  { id: "dikeLand", name: "堤防用地範圍線", on: true, legend: { color: "#ef4444", fill: "rgba(239, 68, 68, 0.2)" } },
+  { id: "governance", name: "治理計畫線", on: true, legend: { color: "#f59e0b" } },
+  { id: "backwater", name: "背水堤範圍", on: true, legend: { color: "#06b6d4", fill: "rgba(6, 182, 212, 0.25)" } },
+  { id: "reserve", name: "原住民保留地(萬榮.鳳林.光復)(113年資料)", on: false, legend: { color: "#d97706", fill: "rgba(245, 158, 11, 0.8)" } },
+  { id: "taisugar", name: "台糖公司可供釋出土地 (花蓮縣)", on: false, legend: { color: "#059669", fill: "rgba(16, 185, 129, 0.5)" } },
+  { id: "nationalLand", name: "花蓮縣公有土地(含屬性資料)", on: false, legend: { color: "#1d4ed8", fill: "rgba(59, 130, 246, 0.4)" } },
   { id: "cadastral", name: "花蓮縣光復鄉地籍圖(107年資料)", on: false },
   { id: "landOpendata", name: "公有土地圖層 (國土測繪服務雲)", on: false },
   { id: "upZone", name: "都市計畫土地使用分區圖", on: false },
@@ -185,27 +208,21 @@ function FlyToUpdater({ location }: { location?: SelectedLocation }) {
   return null;
 }
 
-// 支援雙模式的互動點選器
+// 回報時的地圖點選：地點回報選一個點，範圍回報逐一加入多邊形頂點
 function LocationPicker({
   onSelectLocation,
   mapMode,
-  isDrawing,
   onAddDrawingPoint,
 }: {
   onSelectLocation: (location: { lat: number; lng: number }) => void;
-  mapMode: 'query' | 'general' | 'instant';
-  isDrawing: boolean;
+  mapMode: 'query' | 'point' | 'area';
   onAddDrawingPoint: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e: LeafletMouseEvent) {
       const { lat, lng } = e.latlng;
-      if (mapMode === 'query') return;
-      if (mapMode === 'instant' && isDrawing) {
-        onAddDrawingPoint(lat, lng);
-      } else {
-        onSelectLocation({ lat, lng });
-      }
+      if (mapMode === 'point') onSelectLocation({ lat, lng });
+      if (mapMode === 'area') onAddDrawingPoint(lat, lng);
     },
   });
 
@@ -279,6 +296,10 @@ function MapView({
   lastSubmittedLocation,
   mapMode,
   onPolygonConfirm,
+  confirmedPolygon = [],
+  onCancelDraw,
+  onClearPolygon,
+  hideDrawHint = false,
   showReports,
   story,
 }: MapViewProps) {
@@ -321,7 +342,6 @@ function MapView({
   const [measureDone, setMeasureDone] = useState(false);
 
   // PPGIS 多邊形災害範圍繪製 State
-  const [isDrawing, setIsDrawing] = useState(false);
   const [drawingPoints, setDrawingPoints] = useState<[number, number][]>([]);
 
   useEffect(() => {
@@ -380,9 +400,8 @@ function MapView({
   // 已回報的點位只在回報災情模式出現，查詢與故事地圖不顯示
   const visibleReports = showReports ? reports : [];
 
-  // 重置即時模式的繪圖 State，如果 mapMode 切換
+  // 切換模式時清掉畫到一半的範圍與測量
   useEffect(() => {
-    setIsDrawing(false);
     setDrawingPoints([]);
     setMeasureKind(null);
     setMeasurePoints([]);
@@ -523,17 +542,14 @@ function MapView({
     }
   };
 
-  // 即時模式：添加繪圖點位
+  // 範圍回報：加入多邊形頂點
   const handleAddDrawingPoint = (lat: number, lng: number) => {
     setDrawingPoints((prev) => [...prev, [lat, lng]]);
   };
 
-  // 即時模式：確認受災多邊形並計算幾何中心點位作為單一選點紀錄
+  // 範圍回報：確認多邊形，並以幾何中心作為這筆回報的經緯度
   const handleConfirmPolygon = () => {
-    if (drawingPoints.length < 3) {
-      alert("請至少標記 3 個頂點以圈出災害範圍！");
-      return;
-    }
+    if (drawingPoints.length < 3) return;
 
     // 計算幾何中心點 (Centroid)
     const latSum = drawingPoints.reduce((sum, pt) => sum + pt[0], 0);
@@ -549,8 +565,6 @@ function MapView({
       onPolygonConfirm(drawingPoints);
     }
 
-    // 關閉繪圖模式，清空本地繪圖點
-    setIsDrawing(false);
     setDrawingPoints([]);
   };
 
@@ -709,119 +723,39 @@ function MapView({
 
       <div style={{ position: "relative", flex: 1, display: "flex", flexDirection: "column", minHeight: "450px" }}>
         
-        {/* PPGIS 即時災害範圍繪圖控制按鈕組 (單獨漂浮在地圖中下) */}
-        {mapMode === 'instant' && (
-          <div className="app-instant-drawing-control">
-            {!isDrawing ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDrawing(true);
-                  setDrawingPoints([]);
-                }}
-                style={{
-                  padding: "12px 28px",
-                  backgroundColor: "#ef4444",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "0", // 改成直角
-                  fontWeight: 800,
-                  fontSize: "15px",
-                  cursor: "pointer",
-                  boxShadow: "0 10px 25px rgba(239, 68, 68, 0.3)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  transition: "all 0.2s",
-                  whiteSpace: "nowrap"
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = "#dc2626";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = "#ef4444";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
-              >
-                <Play size={16} />
-                <span>開始繪製即時災情範圍</span>
-              </button>
-            ) : (
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
-                {/* 清除按鈕 */}
-                <button
-                  type="button"
-                  onClick={() => setDrawingPoints([])}
-                  disabled={drawingPoints.length === 0}
-                  style={{
-                    padding: "10px 18px",
-                    backgroundColor: "white",
-                    color: drawingPoints.length === 0 ? "#94a3b8" : "#475569",
-                    border: "1px solid #cbd5e1",
-                    borderRadius: "0",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    cursor: drawingPoints.length === 0 ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
-                >
-                  <Trash2 size={14} />
-                  <span>清除點位 ({drawingPoints.length})</span>
-                </button>
-
-                {/* 確認範圍按鈕 */}
-                <button
-                  type="button"
-                  onClick={handleConfirmPolygon}
-                  disabled={drawingPoints.length < 3}
-                  style={{
-                    padding: "10px 22px",
-                    backgroundColor: drawingPoints.length < 3 ? "#e2e8f0" : "#16a34a",
-                    color: drawingPoints.length < 3 ? "#94a3b8" : "white",
-                    border: "none",
-                    borderRadius: "0",
-                    fontWeight: 800,
-                    fontSize: "14px",
-                    cursor: drawingPoints.length < 3 ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    boxShadow: drawingPoints.length < 3 ? "none" : "0 4px 12px rgba(22, 163, 74, 0.2)"
-                  }}
-                >
-                  <CheckCircle2 size={14} />
-                  <span>確認受災範圍</span>
-                </button>
-
-                {/* 取消按鈕 */}
+        {/* 回報時的操作提示與「重畫」「取消」 */}
+        {mapMode !== 'query' && (
+          <>
+            <div className="draw-hint" role="status" hidden={hideDrawHint}>
+              {mapMode === 'point'
+                ? selectedLocation
+                  ? "按地圖上的「確認點位」開始填報，或點其他位置重選"
+                  : "↓ 請點選地圖上的受災位置 ↓"
+                : drawingPoints.length >= 3
+                ? "按「確認範圍」完成，或繼續點選加入頂點"
+                : drawingPoints.length === 0 && confirmedPolygon.length >= 3
+                ? "範圍已確認，請在左側填寫；要重新圈選請按「重畫」"
+                : `↓ 請在地圖上依序點出受災範圍（${drawingPoints.length}/3） ↓`}
+            </div>
+            <div className="draw-actions">
+              {mapMode === 'area' && (
                 <button
                   type="button"
                   onClick={() => {
-                    setIsDrawing(false);
                     setDrawingPoints([]);
+                    onClearPolygon?.();
                   }}
-                  style={{
-                    padding: "10px 18px",
-                    backgroundColor: "#64748b",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "0",
-                    fontWeight: 700,
-                    fontSize: "14px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px"
-                  }}
+                  disabled={drawingPoints.length === 0 && confirmedPolygon.length === 0}
                 >
-                  <span>取消</span>
+                  <Trash2 size={16} />
+                  重畫
                 </button>
-              </div>
-            )}
-          </div>
+              )}
+              <button type="button" onClick={onCancelDraw}>
+                取消
+              </button>
+            </div>
+          </>
         )}
 
         {/* 載入中橫幅 */}
@@ -857,7 +791,7 @@ function MapView({
           <div
             style={{
               position: "absolute",
-              top: mapMode === 'instant' ? "140px" : "72px", // 避開左上搜尋欄與即時模式的繪圖按鈕
+              top: mapMode === 'query' ? "72px" : "120px", // 避開左上搜尋欄與回報時的操作提示
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 1000,
@@ -1041,27 +975,35 @@ function MapView({
             />
           )}
 
-          {/* 即時受災多邊形與頂點的渲染 */}
-          {isDrawing && drawingPoints.length > 0 && (
+          {/* 範圍回報：已確認的範圍，以及正在畫的範圍與頂點 */}
+          {mapMode === 'area' && drawingPoints.length === 0 && confirmedPolygon.length >= 3 && (
+            <Polygon positions={confirmedPolygon} pathOptions={{ color: "#000000", weight: 3, fillColor: "#FEA900", fillOpacity: 0.35 }} />
+          )}
+          {mapMode === 'area' && drawingPoints.length > 0 && (
             <>
-              <Polygon 
-                positions={drawingPoints} 
-                color="#ef4444" 
-                fillColor="#ef4444" 
-                fillOpacity={0.35} 
-                weight={3} 
+              <Polygon
+                positions={drawingPoints}
+                pathOptions={{ color: "#000000", weight: 3, dashArray: "6 6", fillColor: "#FEA900", fillOpacity: 0.3 }}
               />
               {drawingPoints.map((pt, idx) => (
                 <CircleMarker 
                   key={idx} 
                   center={pt} 
                   radius={5} 
-                  color="#dc2626" 
-                  fillColor="white" 
+                  color="#000000" 
+                  fillColor="#FEA900" 
                   fillOpacity={1} 
                   weight={2} 
                 />
               ))}
+              {drawingPoints.length >= 3 && (
+                <Marker
+                  position={drawingPoints[drawingPoints.length - 1]}
+                  icon={confirmAreaIcon}
+                  zIndexOffset={3000}
+                  eventHandlers={{ click: handleConfirmPolygon }}
+                />
+              )}
             </>
           )}
 
@@ -1080,7 +1022,6 @@ function MapView({
             <LocationPicker
               onSelectLocation={onSelectLocation}
               mapMode={mapMode}
-              isDrawing={isDrawing}
               onAddDrawingPoint={handleAddDrawingPoint}
             />
           )}
@@ -1089,7 +1030,17 @@ function MapView({
           
           <ZoomTracker onZoomChange={setZoomLevel} />
 
-          {selectedLocation && (
+          {/* 地點回報：選好的點上方顯示「確認點位」 */}
+          {mapMode === 'point' && selectedLocation && (
+            <Marker
+              position={[selectedLocation.lat, selectedLocation.lng]}
+              icon={confirmPointIcon}
+              zIndexOffset={3000}
+              eventHandlers={{ click: () => onConfirmGeneralLocation?.() }}
+            />
+          )}
+
+          {selectedLocation && !(mapMode === 'area' && confirmedPolygon.length >= 3) && (
             <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
               <Popup>
                 <div style={{ minWidth: "220px", fontSize: "14px" }}>
@@ -1099,7 +1050,7 @@ function MapView({
                   <PopupRow label="緯度：" value={selectedLocation.lat} />
                   <PopupRow label="經度：" value={selectedLocation.lng} />
 
-                  {mapMode !== 'query' && (
+                  {mapMode === 'point' && (
                   <button
                     onClick={() => {
                       if (onConfirmGeneralLocation) {
@@ -1136,7 +1087,8 @@ function MapView({
           )}
 
           {visibleReports
-            .filter((report) => report.lat !== null && report.lng !== null && parsePolygonFromAddress(report.address) === null)
+            // 即時災情的範圍只畫多邊形；一般災情畫了範圍的，中心點仍保留標記以便查看完整資料
+            .filter((report) => report.lat !== null && report.lng !== null && !(isInstantReport(report) && parsePolygonFromAddress(report.address)))
             .map((report, index) => {
               const isLatest = lastSubmittedLocation &&
                 report.lat === lastSubmittedLocation.lat &&
@@ -1315,16 +1267,19 @@ function MapView({
                         color: "#ea580c",
                       }}
                     >
-                      即時受災範圍 (多邊形)
+                      {isInstantReport(report) ? "即時災情範圍" : "一般災情範圍"}
                     </p>
 
                     <PopupRow label="資料日期：" value={report.reportDate} />
                     <PopupRow label="填表人：" value={report.respondentType} />
                     <PopupRow label="所屬部落：" value={report.tribeName || "未填"} />
-                    <PopupRow 
-                      label="災情內容：" 
-                      value={report.address.split(" | 災害範圍 (多邊形點位):")[0] || "未填"} 
+                    <PopupRow
+                      label={isInstantReport(report) ? "災情內容：" : "地址："}
+                      value={report.address.split(/ ?\| ?災害範圍 \(多邊形點位\):|^災害範圍 \(多邊形點位\):/)[0] || "未填"}
                     />
+                    {!isInstantReport(report) && (
+                      <p style={{ margin: "6px 0 0", fontSize: "13px", color: "#505B54" }}>點範圍中心的標記可查看完整填報內容。</p>
+                    )}
 
                     {report.photos && report.photos.length > 0 && (
                       <div style={{ marginTop: "12px", borderTop: "1px solid #e5e7eb", paddingTop: "10px" }}>

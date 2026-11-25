@@ -1,6 +1,12 @@
 import { X } from "lucide-react";
 
-export type LayerOption = { id: string; name: string; group?: "map" | "pre" | "post" };
+export type LayerOption = {
+  id: string;
+  name: string;
+  group?: "map" | "pre" | "post";
+  /** 圖例：線或面的顏色與樣式，讓圖層不只靠顏色區分 */
+  legend?: { color: string; fill?: string; dashed?: boolean };
+};
 
 // 基本底圖分組：災前、災後以 2025/9/23 堰塞湖溢流為界
 const BASE_GROUPS: { id: NonNullable<LayerOption["group"]>; label: string; tag?: string }[] = [
@@ -86,6 +92,13 @@ export default function LayerPanel({
                     onChange={(e) => onToggleOverlay(layer.id, e.target.checked)}
                   />
                   <span>{layer.name}</span>
+                  {layer.legend && (
+                    <span
+                      className={`layer-legend${layer.legend.fill ? "" : " line"}${layer.legend.dashed ? " dashed" : ""}`}
+                      style={{ borderColor: layer.legend.color, background: layer.legend.fill ?? "transparent" }}
+                      aria-hidden="true"
+                    />
+                  )}
                 </label>
                 <div className="layer-opacity">
                   <input
