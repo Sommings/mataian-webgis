@@ -20,8 +20,8 @@ import L, { type LeafletMouseEvent, type PathOptions } from "leaflet";
 import { Trash2, CheckCircle2, Play, Search } from "lucide-react";
 import { MapToolbar, MeasureLayer, type MeasureKind } from "./MapTools";
 import { GUANGFU_BOUNDS } from "../lib/guangfu";
-import LayerPanel, { type OverlayState } from "./LayerPanel";
-import { StoryLayer } from "./StoryMap";
+import LayerPanel, { type LayerOption, type OverlayState } from "./LayerPanel";
+import { StoryLayer, type OpenPhoto } from "./StoryMap";
 import type { StoryRegion } from "../types/story";
 
 const normalizeAddress = (addr: string) => {
@@ -59,8 +59,15 @@ type MapViewProps = {
   // query：只瀏覽，點地圖不選點；general、instant：沿用原本兩種填報
   mapMode: 'query' | 'general' | 'instant';
   onPolygonConfirm?: (polygonPoints: [number, number][]) => void;
-  /** 故事地圖模式：顯示區域標籤，隱藏填報點位 */
-  story?: { regions: StoryRegion[]; selectedId: string | null; onSelect: (id: string) => void } | null;
+  /** 是否顯示已回報的災情點位與範圍（只在回報災情模式顯示） */
+  showReports: boolean;
+  /** 故事地圖模式：顯示區域標籤 */
+  story?: {
+    regions: StoryRegion[];
+    selectedId: string | null;
+    onSelect: (id: string) => void;
+    onOpenPhoto: OpenPhoto;
+  } | null;
 };
 
 const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
@@ -90,24 +97,31 @@ const postDisasterAerialUrls = Array.from({ length: 8 }, (_, i) =>
   nlscTileUrl(`Asrs_20251116_${i + 1}`)
 );
 
-// Sentinel-2 L2A，由 Microsoft Planetary Computer 出圖磚。
+// Sentinel-2 L2A（10 m），由 Microsoft Planetary Computer 出圖磚。
 // 換日期時改成新的 item id（STAC 查 collection sentinel-2-l2a、圖幅 T51QUG）
-const sentinel2Date = "2026/10/01";
-const sentinel2Item = "S2B_MSIL2A_20261001T022529_R046_T51QUG_20261001T043628";
-const sentinel2TileUrl =
+const sentinel2TileUrl = (item: string) =>
   "https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/{z}/{x}/{y}@1x.png" +
-  `?collection=sentinel-2-l2a&item=${sentinel2Item}&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0`;
+  `?collection=sentinel-2-l2a&item=${item}&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0`;
 
-// 圖層面板的清單。基本底圖擇一；額外圖層可多選，各自調透明度
-const BASE_LAYERS = [
-  { id: "emap", name: "國土測繪圖資服務雲 (電子地圖)" },
-  { id: "photo2", name: "國土測繪圖資服務雲-正射影像 (正射影像圖)" },
-  { id: "sentinel2", name: `最新衛星影像 ${sentinel2Date} (Sentinel-2, 10m)` },
-  { id: "aerial20251116", name: "災後航照 2025/11/16 (航遙測分署)" },
-  { id: "photo2025", name: "國土測繪圖資服務雲-114年正射影像 (災前)" },
-  { id: "emap5", name: "國土測繪圖資服務雲-混合地圖 (電子地圖)" },
-  { id: "hlmap", name: "花蓮縣一般版地圖" },
-  { id: "hlimage", name: "花蓮縣正射影像 (災前空照圖)" },
+const SENTINEL2_SCENES: Record<string, { date: string; item: string }> = {
+  s2pre0615: { date: "2025/06/15", item: "S2A_MSIL2A_20250615T023141_R046_T51QUG_20250615T070417" },
+  s2pre0921: { date: "2025/09/21", item: "S2C_MSIL2A_20250921T022541_R046_T51QUG_20250921T054914" },
+  sentinel2: { date: "2026/10/01", item: "S2B_MSIL2A_20261001T022529_R046_T51QUG_20261001T043628" },
+};
+
+// 圖層面板的清單。基本底圖擇一，依「地圖／災前影像／災後影像」分組；額外圖層可多選，各自調透明度
+// 災前、災後以 2025/9/23 馬太鞍溪堰塞湖溢流為界
+const BASE_LAYERS: LayerOption[] = [
+  { id: "emap", name: "國土測繪圖資服務雲 (電子地圖)", group: "map" },
+  { id: "emap5", name: "國土測繪圖資服務雲-混合地圖", group: "map" },
+  { id: "hlmap", name: "花蓮縣一般版地圖", group: "map" },
+  { id: "s2pre0921", name: "衛星影像 2025/09/21，溢流前兩天 (Sentinel-2)", group: "pre" },
+  { id: "s2pre0615", name: "衛星影像 2025/06/15 (Sentinel-2)", group: "pre" },
+  { id: "photo2", name: "國土測繪中心正射影像 (光復一帶為 2023 年)", group: "pre" },
+  { id: "photo2025", name: "國土測繪中心 114 年正射影像", group: "pre" },
+  { id: "hlimage", name: "花蓮縣正射影像 (空照圖)", group: "pre" },
+  { id: "sentinel2", name: "衛星影像 2026/10/01 (Sentinel-2)", group: "post" },
+  { id: "aerial20251116", name: "航照 2025/11/16 (航遙測分署，只涵蓋馬太鞍溪流域)", group: "post" },
 ];
 
 const OVERLAYS = [
@@ -265,6 +279,7 @@ function MapView({
   lastSubmittedLocation,
   mapMode,
   onPolygonConfirm,
+  showReports,
   story,
 }: MapViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -303,6 +318,7 @@ function MapView({
   const nationalLandStyle = usePathStyle(NATIONAL_LAND_STYLE, opacityOf("nationalLand"));
   const [measureKind, setMeasureKind] = useState<MeasureKind | null>(null);
   const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
+  const [measureDone, setMeasureDone] = useState(false);
 
   // PPGIS 多邊形災害範圍繪製 State
   const [isDrawing, setIsDrawing] = useState(false);
@@ -361,8 +377,8 @@ function MapView({
     }
   }, [nationalLandEnabled, nationalLandGeojson, isNationalLandLoading]);
 
-  // 故事地圖只呈現區域故事，不顯示填報點位
-  const visibleReports = story ? [] : reports;
+  // 已回報的點位只在回報災情模式出現，查詢與故事地圖不顯示
+  const visibleReports = showReports ? reports : [];
 
   // 重置即時模式的繪圖 State，如果 mapMode 切換
   useEffect(() => {
@@ -370,6 +386,7 @@ function MapView({
     setDrawingPoints([]);
     setMeasureKind(null);
     setMeasurePoints([]);
+    setMeasureDone(false);
   }, [mapMode]);
 
   // 測量時地圖雙擊不放大，避免連點兩個頂點時跳畫面
@@ -895,11 +912,11 @@ function MapView({
               maxZoom={20}
             />
           )}
-          {activeBase === "sentinel2" && (
+          {activeBase in SENTINEL2_SCENES && (
             <TileLayer
-              key="sentinel2"
-              attribution="Contains modified Copernicus Sentinel data 2026 &middot; Microsoft Planetary Computer"
-              url={sentinel2TileUrl}
+              key={activeBase}
+              attribution={`Contains modified Copernicus Sentinel data ${SENTINEL2_SCENES[activeBase].date.slice(0, 4)} &middot; Microsoft Planetary Computer`}
+              url={sentinel2TileUrl(SENTINEL2_SCENES[activeBase].item)}
               maxNativeZoom={15}
               maxZoom={20}
             />
@@ -1055,7 +1072,9 @@ function MapView({
             <MeasureLayer
               kind={measureKind}
               points={measurePoints}
-              onAddPoint={(p) => setMeasurePoints((prev) => [...prev, p])}
+              setPoints={setMeasurePoints}
+              done={measureDone}
+              setDone={setMeasureDone}
             />
           ) : (
             <LocationPicker
@@ -1339,7 +1358,14 @@ function MapView({
               </Polygon>
             );
           })}
-          {story && <StoryLayer regions={story.regions} selectedId={story.selectedId} onSelect={story.onSelect} />}
+          {story && (
+            <StoryLayer
+              regions={story.regions}
+              selectedId={story.selectedId}
+              onSelect={story.onSelect}
+              onOpenPhoto={story.onOpenPhoto}
+            />
+          )}
         </MapContainer>
 
         <MapToolbar
@@ -1350,11 +1376,18 @@ function MapView({
           isLocating={isLocating}
           measureKind={measureKind}
           onMeasureKindChange={(kind) => {
-            if (kind !== measureKind) setMeasurePoints([]);
+            if (kind !== measureKind) {
+              setMeasurePoints([]);
+              setMeasureDone(false);
+            }
             setMeasureKind(kind);
           }}
           measurePoints={measurePoints}
-          onClearMeasure={() => setMeasurePoints([])}
+          measureDone={measureDone}
+          onClearMeasure={() => {
+            setMeasurePoints([]);
+            setMeasureDone(false);
+          }}
         />
 
         {layersOpen && (

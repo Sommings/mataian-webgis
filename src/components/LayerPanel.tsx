@@ -1,6 +1,14 @@
 import { X } from "lucide-react";
 
-export type LayerOption = { id: string; name: string };
+export type LayerOption = { id: string; name: string; group?: "map" | "pre" | "post" };
+
+// 基本底圖分組：災前、災後以 2025/9/23 堰塞湖溢流為界
+const BASE_GROUPS: { id: NonNullable<LayerOption["group"]>; label: string; tag?: string }[] = [
+  { id: "map", label: "地圖" },
+  { id: "pre", label: "災前影像", tag: "災前" },
+  { id: "post", label: "災後影像", tag: "災後" },
+];
+
 export type OverlayState = Record<string, { on: boolean; transparency: number }>;
 
 type LayerPanelProps = {
@@ -36,22 +44,33 @@ export default function LayerPanel({
 
       <div className="layer-panel-body">
         <h3>基本底圖</h3>
-        <ul className="layer-list">
-          {baseLayers.map((layer) => (
-            <li key={layer.id}>
-              <label className="layer-row">
-                <input
-                  type="radio"
-                  name="base-layer"
-                  id={`base-${layer.id}`}
-                  checked={activeBase === layer.id}
-                  onChange={() => onBaseChange(layer.id)}
-                />
-                <span>{layer.name}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        <p className="layer-note">災前、災後以 2025/9/23 馬太鞍溪堰塞湖溢流為界</p>
+        {BASE_GROUPS.map((group) => (
+          <div key={group.id} className="layer-group">
+            <h4>
+              {group.tag && <span className={`layer-tag ${group.id}`}>{group.tag}</span>}
+              {group.label}
+            </h4>
+            <ul className="layer-list">
+              {baseLayers
+                .filter((layer) => (layer.group ?? "map") === group.id)
+                .map((layer) => (
+                  <li key={layer.id} className={activeBase === layer.id ? "on" : ""}>
+                    <label className="layer-row">
+                      <input
+                        type="radio"
+                        name="base-layer"
+                        id={`base-${layer.id}`}
+                        checked={activeBase === layer.id}
+                        onChange={() => onBaseChange(layer.id)}
+                      />
+                      <span>{layer.name}</span>
+                    </label>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        ))}
 
         <h3>額外圖層</h3>
         <ul className="layer-list">

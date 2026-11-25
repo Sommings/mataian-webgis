@@ -7,7 +7,8 @@ import { supabase } from "./lib/supabase";
 import SuccessModal from "./components/SuccessModal";
 import LandingPage from "./components/LandingPage";
 import AppHeader, { type AppMode } from "./components/AppHeader";
-import { StoryPanel } from "./components/StoryMap";
+import { StoryLightbox, StoryPanel } from "./components/StoryMap";
+import type { StoryPhoto } from "./types/story";
 import { STORY_REGIONS } from "./lib/story";
 
 type SelectedLocation = {
@@ -87,6 +88,8 @@ function App() {
   const [reportType, setReportType] = useState<'general' | 'instant' | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [storyRegionId, setStoryRegionId] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ photos: StoryPhoto[]; index: number } | null>(null);
+  const openPhoto = (photos: StoryPhoto[], index: number) => setLightbox({ photos, index });
   const mapMode = mode === 'report' && reportType ? reportType : 'query';
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
@@ -264,7 +267,12 @@ function App() {
               }}
               lastSubmittedLocation={lastSubmittedLocation}
               mapMode={mapMode}
-              story={mode === 'story' ? { regions: STORY_REGIONS, selectedId: storyRegionId, onSelect: setStoryRegionId } : null}
+              showReports={mode === 'report'}
+              story={
+                mode === 'story'
+                  ? { regions: STORY_REGIONS, selectedId: storyRegionId, onSelect: setStoryRegionId, onOpenPhoto: openPhoto }
+                  : null
+              }
               onPolygonConfirm={(polygonPoints) => {
                 setInstantPolygon(polygonPoints);
                 setIsFormOpen(true); // 確認多邊形繪製後自動彈出表單
@@ -272,7 +280,12 @@ function App() {
             />
 
             {mode === 'story' && (
-              <StoryPanel regions={STORY_REGIONS} selectedId={storyRegionId} onSelect={setStoryRegionId} />
+              <StoryPanel
+                regions={STORY_REGIONS}
+                selectedId={storyRegionId}
+                onSelect={setStoryRegionId}
+                onOpenPhoto={openPhoto}
+              />
             )}
 
             {mode === 'report' && (
@@ -301,6 +314,15 @@ function App() {
           </div>
         </div>
       </div>
+
+      {lightbox && (
+        <StoryLightbox
+          photos={lightbox.photos}
+          index={lightbox.index}
+          onIndexChange={(index) => setLightbox({ ...lightbox, index })}
+          onClose={() => setLightbox(null)}
+        />
+      )}
 
       {aboutOpen && (
         <div className="about-overlay" role="dialog" aria-modal="true" aria-label="關於這個地圖">

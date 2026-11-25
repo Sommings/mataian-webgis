@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { CircleMarker, Polygon, Polyline, useMapEvents } from "react-leaflet";
-import type { Map as LeafletMap } from "leaflet";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { CircleMarker, Marker, Polygon, Polyline, useMap, useMapEvents } from "react-leaflet";
+import L, { type Map as LeafletMap } from "leaflet";
 import { House, Layers, Locate, Minus, Plus, Ruler, X } from "lucide-react";
 import { GUANGFU_BOUNDS } from "../lib/guangfu";
 
@@ -40,21 +40,35 @@ const formatAreaSub = (m2: number) =>
     ? `約 ${Math.round(m2 * 0.3025).toLocaleString()} 坪`
     : `約 ${(m2 / 1e6).toFixed(2)} 平方公里`;
 
-/** 地圖內的測量圖形與點擊收集，需放在 MapContainer 裡 */
+// 雙擊時瀏覽器會先送出兩次 click，第二個點和前一點幾乎重疊，結束時拿掉
+const DUPLICATE_PX = 6;
+
+function measureText(map: LeafletMap, kind: MeasureKind, points: LatLng[]): string | null {
+  if (kind === "distance") return points.length >= 2 ? formatDistance(pathLength(map, points)) : null;
+  return points.length >= 3 ? formatArea(geodesicArea(points)) : null;
+}
+
+/**
+ * 地圖內的測量圖形與點擊收集，需放在 MapContainer 裡。
+ * 點擊直接從地圖容器（捕獲階段）接收，點在堤防範圍等可點選的圖層上也能加點，測量時也不會打開彈出視窗。
+ * 雙擊結束；結束後再點地圖會開始新的測量。
+ */
 export function MeasureLayer({
   kind,
   points,
-  onAddPoint,
+  setPoints,
+  done,
+  setDone,
 }: {
   kind: MeasureKind;
   points: LatLng[];
-  onAddPoint: (p: LatLng) => void;
+  setPoints: Dispatch<SetStateAction<LatLng[]>>;
+  done: boolean;
+  setDone: (done: boolean) => void;
 }) {
+  const map = useMap();
   const [hover, setHover] = useState<LatLng | null>(null);
   useMapEvents({
-    click(e) {
-      onAddPoint([e.latlng.lat, e.latlng.lng]);
-    },
     mousemove(e) {
       setHover([e.latlng.lat, e.latlng.lng]);
     },
@@ -63,8 +77,49 @@ export function MeasureLayer({
     },
   });
 
+  useEffect(() => {
+    const container = map.getContainer();
+    const isControl = (e: MouseEvent) => (e.target as HTMLElement).closest(".leaflet-control") !== null;
+    const toLatLng = (e: MouseEvent): LatLng => {
+      const ll = map.mouseEventToLatLng(e);
+      return [ll.lat, ll.lng];
+    };
+    const onClick = (e: MouseEvent) => {
+      // 拖曳地圖放開時也會觸發 click，這種不算加點
+      const dragging = map.dragging as L.Handler & { moved?: () => boolean };
+      if (isControl(e) || dragging.moved?.()) return;
+      e.stopPropagation();
+      const p = toLatLng(e);
+      if (done) {
+        setDone(false);
+        setPoints([p]);
+      } else {
+        setPoints((prev) => [...prev, p]);
+      }
+    };
+    const onDblClick = (e: MouseEvent) => {
+      if (isControl(e)) return;
+      e.stopPropagation();
+      setPoints((prev) => {
+        if (prev.length < 2) return prev;
+        const a = map.latLngToContainerPoint(prev[prev.length - 2]);
+        const b = map.latLngToContainerPoint(prev[prev.length - 1]);
+        return a.distanceTo(b) < DUPLICATE_PX ? prev.slice(0, -1) : prev;
+      });
+      setDone(true);
+    };
+    container.addEventListener("click", onClick, true);
+    container.addEventListener("dblclick", onDblClick, true);
+    return () => {
+      container.removeEventListener("click", onClick, true);
+      container.removeEventListener("dblclick", onDblClick, true);
+    };
+  }, [map, done, setDone, setPoints]);
+
   const style = { color: "#000000", weight: 3, dashArray: "6 6" };
-  const preview = hover && points.length > 0 ? [...points, hover] : points;
+  const preview = hover && points.length > 0 && !done ? [...points, hover] : points;
+  const text = measureText(map, kind, points);
+  const last = points[points.length - 1];
   return (
     <>
       {kind === "area" && preview.length >= 3 ? (
@@ -81,6 +136,19 @@ export function MeasureLayer({
           interactive={false}
         />
       ))}
+      {text && last && (
+        <Marker
+          position={last}
+          interactive={false}
+          keyboard={false}
+          icon={L.divIcon({
+            className: "measure-result-marker",
+            html: `<span class="measure-result-label${done ? " done" : ""}">${text}</span>`,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0],
+          })}
+        />
+      )}
     </>
   );
 }
@@ -95,6 +163,7 @@ export function MapToolbar({
   measureKind,
   onMeasureKindChange,
   measurePoints,
+  measureDone,
   onClearMeasure,
 }: {
   map: LeafletMap | null;
@@ -105,6 +174,7 @@ export function MapToolbar({
   measureKind: MeasureKind | null;
   onMeasureKindChange: (kind: MeasureKind | null) => void;
   measurePoints: LatLng[];
+  measureDone: boolean;
   onClearMeasure: () => void;
 }) {
   const measuring = measureKind !== null;
@@ -163,15 +233,18 @@ export function MapToolbar({
               面積
             </button>
           </div>
+          <p className="measure-hint">
+            {measureDone ? "已完成。點地圖可重新測量。" : "在地圖上依序點選，雙擊結束。"}
+          </p>
           <div className="measure-result">
             {measureKind === "distance" ? (
               measurePoints.length < 2 ? (
-                <span className="measure-hint">在地圖上依序點選，至少 2 點</span>
+                <span className="measure-hint">至少點 2 個點</span>
               ) : (
                 <span className="measure-value">{formatDistance(length)}</span>
               )
             ) : measurePoints.length < 3 ? (
-              <span className="measure-hint">在地圖上點選範圍的頂點，至少 3 點</span>
+              <span className="measure-hint">至少點 3 個頂點</span>
             ) : (
               <>
                 <span className="measure-value">{formatArea(area)}</span>

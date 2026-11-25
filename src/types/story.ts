@@ -16,6 +16,15 @@ export type StoryPhoto = {
   credit: StoryPhotoCredit;
 };
 
+export type StoryLink = {
+  title: string;
+  /** 媒體或單位名稱 */
+  source: string;
+  url: string;
+  /** 縮圖網址；YouTube 連結不用填，會自動抓影片縮圖 */
+  thumbnail?: string;
+};
+
 export type StorySection = {
   heading: string;
   paragraphs: string[];
@@ -29,12 +38,16 @@ export type StoryRegion = {
   title: string;
   lat: number;
   lng: number;
-  /** 地圖上標籤放在點的哪一側，避免相鄰區域重疊 */
+  /** 區域範圍的半徑（公尺），地圖上的光暈依此縮放 */
+  radius: number;
+  /** 地圖上標籤偏向範圍中心的哪一側，避免相鄰區域重疊 */
   labelSide: "top" | "bottom" | "left" | "right";
   sections: StorySection[];
   /** 文案依據的文件 */
   sources: string[];
   photos: StoryPhoto[];
+  /** 延伸閱讀：相關報導、影片 */
+  links: StoryLink[];
   /** 給編輯者看的備註，不會顯示在網站上 */
   editorNote?: string;
 };

@@ -615,6 +615,36 @@ code {
   cursor: not-allowed;
 }
 
+.measure-panel > .measure-hint {
+  display: block;
+  margin: 8px 0 0;
+}
+
+.measure-result-marker {
+  background: transparent;
+  border: none;
+}
+
+.measure-result-label {
+  position: absolute;
+  left: 10px;
+  top: -14px;
+  padding: 2px 8px;
+  background: var(--white);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 900;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.measure-result-label.done {
+  background: var(--amber);
+}
+
 .map-view.measuring .leaflet-container {
   cursor: crosshair;
 }
@@ -680,6 +710,43 @@ code {
   font-weight: 800;
   color: var(--muted);
   letter-spacing: 0.04em;
+}
+
+.layer-note {
+  margin: -2px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.layer-group h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.layer-tag {
+  padding: 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
+  border-radius: var(--radius);
+}
+
+.layer-tag.pre {
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.layer-tag.post {
+  background: var(--ink);
+  color: var(--white);
+  border: 1px solid var(--ink);
 }
 
 .layer-list {
@@ -820,8 +887,9 @@ code {
   padding: 6px 16px;
 }
 
-/* 故事地圖：地圖上的區域標籤 */
-.story-marker {
+/* 故事地圖：地圖上的區域範圍與標籤（光暈大小代表實際範圍，由程式依縮放換算） */
+.story-marker,
+.story-thumbs-marker {
   background: transparent;
   border: none;
 }
@@ -835,25 +903,13 @@ code {
 
 .story-glow {
   position: absolute;
-  left: -60px;
-  top: -60px;
-  width: 120px;
-  height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(244, 108, 26, 0.55) 0%, rgba(254, 169, 0, 0.3) 40%, rgba(254, 169, 0, 0) 70%);
-  pointer-events: none;
+  background: radial-gradient(circle, rgba(244, 108, 26, 0.5) 0%, rgba(254, 169, 0, 0.32) 45%, rgba(254, 169, 0, 0) 72%);
+  cursor: pointer;
 }
 
-.story-dot {
-  position: absolute;
-  left: -7px;
-  top: -7px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--amber);
-  border: 3px solid var(--ink);
-  cursor: pointer;
+.story-pin.selected .story-glow {
+  background: radial-gradient(circle, rgba(244, 108, 26, 0.65) 0%, rgba(254, 169, 0, 0.42) 50%, rgba(254, 169, 0, 0) 74%);
 }
 
 .story-label {
@@ -881,62 +937,92 @@ code {
   font-weight: 700;
 }
 
-.story-pin.side-top .story-label { left: 0; bottom: 14px; transform: translateX(-50%); }
-.story-pin.side-bottom .story-label { left: 0; top: 14px; transform: translateX(-50%); }
-.story-pin.side-left .story-label { right: 14px; top: 0; transform: translateY(-50%); }
-.story-pin.side-right .story-label { left: 14px; top: 0; transform: translateY(-50%); }
-
-.story-no {
-  display: none;
-}
-
-/* 縮小時：只顯示編號圓點（選取中的區域仍顯示名稱） */
-.story-compact .story-pin:not(.selected) .story-label {
-  display: none;
-}
-
-.story-compact .story-pin .story-dot {
-  left: -12px;
-  top: -12px;
-  width: 24px;
-  height: 24px;
-  border-width: 2px;
-  display: grid;
-  place-items: center;
-}
-
-.story-compact .story-no {
-  display: block;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--ink);
-}
-
-.story-compact .story-pin.selected .story-no {
-  color: var(--white);
-}
-
-.story-compact .story-glow {
-  left: -40px;
-  top: -40px;
-  width: 80px;
-  height: 80px;
-}
+/* 標籤以範圍中心為準，略偏向一側，讓相鄰區域不重疊 */
+.story-pin.side-top .story-label { left: 0; bottom: 4px; transform: translateX(-50%); }
+.story-pin.side-bottom .story-label { left: 0; top: 4px; transform: translateX(-50%); }
+.story-pin.side-left .story-label { right: 4px; top: 0; transform: translateY(-50%); }
+.story-pin.side-right .story-label { left: 4px; top: 0; transform: translateY(-50%); }
 
 .story-pin.selected .story-label {
   background: var(--ink);
   color: var(--white);
 }
 
-.story-pin.selected .story-dot {
-  background: var(--ink);
-  border-color: var(--amber);
-}
-
 .story-marker:hover .story-label,
 .story-marker:focus-visible .story-label {
   outline: 3px solid var(--ink);
+}
+
+.story-no {
+  display: none;
+}
+
+/* 縮小時：標籤只顯示編號（選取中的區域仍顯示名稱） */
+.story-compact .story-pin:not(.selected) .story-label {
+  display: none;
+}
+
+.story-compact .story-pin:not(.selected) .story-no {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: block;
+  padding: 1px 6px;
+  background: var(--amber);
+  color: var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+/* 選取區域時，在地圖上範圍旁顯示該區照片縮圖 */
+.story-thumbs {
+  position: absolute;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  background: var(--white);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.story-thumbs.side-bottom { left: 0; top: 52px; transform: translateX(-50%); }
+.story-thumbs.side-top { left: 0; bottom: 52px; transform: translateX(-50%); }
+.story-thumbs.side-right { left: 40px; top: 0; transform: translateY(-50%); }
+.story-thumbs.side-left { right: 40px; top: 0; transform: translateY(-50%); }
+
+.story-thumb {
+  width: 76px;
+  height: 56px;
+  padding: 0;
+  border: none;
+  background: var(--paper);
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.story-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.story-thumb.more {
+  width: 44px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--ink);
+}
+
+.story-thumb:hover img {
+  opacity: 0.85;
 }
 
 /* 故事地圖：左側面板（手機為下方抽屜） */
@@ -1123,7 +1209,6 @@ code {
   display: block;
 }
 
-.story-photo-missing,
 .story-photo-empty {
   display: flex;
   flex-direction: column;
@@ -1138,9 +1223,14 @@ code {
   border: 1px dashed var(--line);
 }
 
-.story-photo-missing a {
-  color: var(--ink);
-  text-underline-offset: 3px;
+.story-photo-note {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.story-photo-empty + .story-photo-note {
+  margin: -12px 0 18px;
 }
 
 .story-photo-empty {
@@ -1274,6 +1364,207 @@ code {
   outline-offset: 2px;
 }
 
+.story-photo-open {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.story-photo-zoom {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 延伸閱讀：報導、影片連結卡 */
+.story-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.story-links h4 {
+  margin: 0 0 2px;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.story-links h4::before {
+  content: "";
+  width: 16px;
+  height: 3px;
+  background: var(--amber);
+}
+
+.story-link {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.story-link:hover {
+  border-color: var(--ink);
+  background: var(--paper);
+}
+
+.story-link-thumb {
+  position: relative;
+  flex: none;
+  width: 96px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  color: var(--muted);
+  overflow: hidden;
+}
+
+.story-link-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story-link-play {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+}
+
+.story-link-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.story-link-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.story-link-source {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 照片放大檢視 */
+.story-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 72px;
+  background: rgba(0, 0, 0, 0.88);
+  font-family: var(--font);
+}
+
+.story-lightbox figure {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.story-lightbox img {
+  max-width: 100%;
+  max-height: calc(100vh - 180px);
+  object-fit: contain;
+}
+
+.story-lightbox figcaption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.story-lightbox .story-credit,
+.story-lightbox .story-credit a,
+.story-lightbox-count {
+  color: #d5dad7;
+}
+
+.story-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.story-lightbox-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.story-lightbox-nav.prev { left: 16px; }
+.story-lightbox-nav.next { right: 16px; }
+
+.story-lightbox button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.story-lightbox button:focus-visible,
+.story-link:focus-visible,
+.story-photo-open:focus-visible {
+  outline: 3px solid var(--amber);
+  outline-offset: 2px;
+}
+
 @media (max-width: 980px) {
   .story-panel {
     top: auto;
@@ -1308,6 +1599,16 @@ code {
 
   .story-panel-body {
     padding: 12px 16px 20px;
+  }
+
+  .story-lightbox {
+    padding: 64px 12px;
+  }
+
+  .story-lightbox-nav {
+    top: auto;
+    bottom: 16px;
+    transform: none;
   }
 }
 
