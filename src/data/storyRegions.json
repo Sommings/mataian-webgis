@@ -1,0 +1,211 @@
+[
+  {
+    "id": "matanki",
+    "nameLocal": "Matanki",
+    "nameZh": "明利村",
+    "title": "河川治理下的土地利用變遷",
+    "lat": 23.6956,
+    "lng": 121.4034,
+    "radius": 700,
+    "labelSide": "top",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["明利村位於花蓮縣萬榮鄉，鄰近馬太鞍溪北岸及台九線。2025 年 9 月 23 日馬太鞍溪堰塞湖溢流，以及後續鳳凰颱風帶來的影響，使河床大幅淤積抬升，泥流越過北岸堤防，沿產業道路漫淹至明利村及台九線。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["為因應河道疏濬及未來防洪需求，政府於萬榮鄉萬利段及鳳林鎮長橋段辦理約 37.47 公頃土地的緊急徵用，作為土石暫置區，並規劃於萬榮側興建第二道堤防。"]},
+      {"heading": "居民關切", "paragraphs": ["大規模水利工程涉及土地徵收、農地使用及原住民土地權益等問題。如何在提升防洪安全的同時，保障農民的耕作權益與生計，並提供合理的補償及替代耕地，是災後重建的重要課題。"]}
+    ],
+    "sources": ["馬太鞍溪左岸（北岸）土地議題說明，第 2–3 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/matanki-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "鳳凰颱風災後情形", "src": "https://ocacnews.net/storage/articleImages/20251117/WM_8c47f4b54761147781ca8c8bd5f6a02d.jpeg", "credit": {"name": "僑新聞 OCAC NEWS", "title": "花蓮馬太鞍溪堰塞湖溢淹1村1里 縣府助評估屋損", "url": "https://ocacnews.net/article/413215"}},
+      {"caption": "鳳凰颱風後水利署緊急施工", "src": "https://www-ws.wra.gov.tw/001/Upload/401/relpic/9122/279987/523974e4-c510-4481-a1fa-46b0c29bde9e.jpg", "credit": {"name": "經濟部水利署", "title": "花蓮縣萬榮鄉明利村淹水 水利署緊急處置防堵溢淹", "url": "https://www.wra.gov.tw/News_Content.aspx?n=6430&s=279987"}}
+    ],
+    "links": [
+      {"title": "花蓮馬太鞍溪堰塞湖溢淹1村1里 縣府助評估屋損", "source": "僑新聞 OCAC NEWS", "url": "https://ocacnews.net/article/413215", "thumbnail": "https://ocacnews.net/storage/articleImages/20251117/WM_8c47f4b54761147781ca8c8bd5f6a02d.jpeg"},
+      {"title": "花蓮縣萬榮鄉明利村淹水 水利署緊急處置防堵溢淹", "source": "經濟部水利署", "url": "https://www.wra.gov.tw/News_Content.aspx?n=6430&s=279987", "thumbnail": "https://www-ws.wra.gov.tw/001/Upload/401/relpic/9122/279987/523974e4-c510-4481-a1fa-46b0c29bde9e.jpg"}
+    ]
+  },
+  {
+    "id": "takomo",
+    "nameLocal": "Takomo",
+    "nameZh": "世耕地",
+    "title": "當世代耕作的土地成為防洪空間",
+    "lat": 23.6925,
+    "lng": 121.432,
+    "radius": 900,
+    "labelSide": "top",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["Takomo 是馬太鞍溪沿岸由河川沖積作用形成的平原，也是部落族人長期耕作、世代使用的傳統耕地。1990 年代萬榮堤防興建後，部分原河道土地浮覆，族人陸續提出原住民保留地申請，然而至今各筆土地的權利取得進度仍不一致。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["堰塞湖溢流後，政府為因應大量土砂堆置需求，將馬太鞍溪橋以下北岸河段的用地範圍線向陸側退縮約 740 公尺，預留土方堆置空間，使大面積世耕地面臨土地取得及未來使用方式改變的問題。"]},
+      {"heading": "居民關切", "paragraphs": ["部分族人雖已長期耕作，卻尚未完成原住民保留地權利取得程序，可能衍生補償對象與土地權利歸屬的爭議。居民期盼政府釐清歷史土地權益、提供替代耕地，並透過跨機關協調，保障族人延續農業生計與土地傳承的可能性。"]}
+    ],
+    "sources": ["馬太鞍溪左岸（北岸）土地議題說明，第 1–3、13 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/takomo-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "土砂暫置場", "src": "https://ourisland.pts.org.tw/sites/default/files/u792/1376-1-10_0.jpg", "credit": {"name": "我們的島（公共電視）", "title": "【馬太鞍溪堰塞湖01】洪災一年：部落重建如何在沙塵中找未來？", "url": "https://ourisland.pts.org.tw/content/12081"}},
+      {"caption": "雜草堆與遠方土砂暫置場", "src": "story/photos/takomo-3.jpg", "credit": {"name": "政大國土服務團"}}
+    ],
+    "links": [
+      {"title": "【馬太鞍溪堰塞湖01】洪災一年：部落重建如何在沙塵中找未來？", "source": "我們的島（公共電視）", "url": "https://ourisland.pts.org.tw/content/12081", "thumbnail": "https://ourisland.pts.org.tw/sites/default/files/field/image/1376-1-1s.jpg"}
+    ]
+  },
+  {
+    "id": "jilitan",
+    "nameLocal": null,
+    "nameZh": "吉利潭",
+    "title": "河道拓寬與囚砂空間的形成",
+    "lat": 23.68,
+    "lng": 121.3971,
+    "radius": 600,
+    "labelSide": "left",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["吉利潭位於馬太鞍溪橋上游、馬太鞍溪南岸，是此次堰塞湖災後河川治理的重要區域之一。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["堰塞湖溢流後，上游仍有大量不穩定土砂，未來強降雨可能再次造成土砂下移。為減少下游河道淤積及洪水溢流風險，政府規劃於吉利潭周邊放寬河道，設置囚砂區，並配合高規格堤防及第二道防線工程，提升整體流域的防洪能力。"]},
+      {"heading": "核心課題", "paragraphs": ["河道拓寬與囚砂區的設置，涉及周邊土地的取得及使用方式改變。除了工程本身的防洪效益，如何評估用地取得的必要性、降低對既有土地使用的影響，以及確保上下游治理措施相互配合，亦是值得持續關注的議題。"]}
+    ],
+    "sources": ["光復重災區土地議題分析，第 7 頁", "馬太鞍溪左岸（北岸）土地議題說明，第 13 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/jilitan-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "遭到泥沙淹沒的民宅", "src": "https://uc.udn.com.tw/photo/2025/11/26/realtime/33788829.jpg", "credit": {"name": "聯合新聞網", "title": "花蓮光復鄉吉利潭農戶家園被泥流吞噬 居民嘆成「災區孤兒」", "url": "https://udn.com/news/story/7328/9164663"}},
+      {"caption": "遭到泥沙淹沒的民宅", "src": "https://uc.udn.com.tw/photo/2025/11/26/realtime/33788830.jpg", "credit": {"name": "聯合新聞網", "title": "花蓮光復鄉吉利潭農戶家園被泥流吞噬 居民嘆成「災區孤兒」", "url": "https://udn.com/news/story/7328/9164663"}}
+    ],
+    "links": [
+      {"title": "花蓮光復鄉吉利潭農戶家園被泥流吞噬 居民嘆成「災區孤兒」", "source": "聯合新聞網", "url": "https://udn.com/news/story/7328/9164663", "thumbnail": "https://uc.udn.com.tw/photo/2025/11/26/realtime/33788828.jpg"}
+    ]
+  },
+  {
+    "id": "xiangcaochang",
+    "nameLocal": null,
+    "nameZh": "香草場社區",
+    "title": "第二道堤防下的家園去留",
+    "lat": 23.6798,
+    "lng": 121.4198,
+    "radius": 450,
+    "labelSide": "bottom",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["香草場社區位於馬太鞍溪南岸，鄰近災後規劃的第二道堤防工程範圍。隨著河川治理計畫及用地範圍線的調整，部分既有住宅面臨拆遷與安置問題。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["為降低未來堰塞湖再次溢流造成的災害風險，政府規劃於既有堤防外側興建第二道防線。然而，依 2026 年 8 月中央協調會報紀錄，香草場社區有 11 戶住戶位於第二道防線預定位置，可能因工程用地取得而面臨住宅拆遷。"]},
+      {"heading": "居民關切", "paragraphs": ["防洪工程不僅涉及土地財產權，也關係到居民長期生活所形成的社區網絡。如何重新檢視工程範圍、減少不必要的拆遷，並在確有拆遷必要時提供合理補償及完善安置，是香草場社區災後重建的重要課題。"]}
+    ],
+    "sources": ["阿陶莫土地議題說明", "2026 年 8 月 14 日第 9 次中央協調會報紀錄"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/xiangcaochang-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "被泥水沖毀的馬太鞍溪橋，目前正在重建中", "src": "https://e-info.org.tw/images/d7d99d6e-4798-425c-933f-a39ef8d9ab9a-w1600.webP", "credit": {"name": "環境資訊中心", "title": "預知災難紀事：馬太鞍溪堰塞湖潰壩事件", "url": "https://www.e-info.org.tw/node/242289"}},
+      {"caption": "緊鄰南岸原有堤防的社區一隅", "src": "https://www.newsmarket.com.tw/files/2026/09/1-%E6%94%BF%E5%BA%9C%E5%9C%A8%E5%8D%97%E5%B2%B8%E8%88%88%E5%BB%BA%E7%AC%AC%E4%BA%8C%E5%BA%A7%E5%A0%A4%E9%98%B2%EF%BC%8C%E5%BE%80%E5%B7%A6%E5%BE%B5%E6%94%B6%E6%9C%83%E7%8A%A7%E7%89%B2%E8%BE%B2%E7%94%B0%EF%BC%8C%E5%BE%80%E5%8F%B3%E5%BE%B5%E6%94%B6%E5%8D%BB%E6%9C%83%E6%9C%89-11-%E6%88%B6%E4%BA%BA%E5%AE%B6%E9%81%AD%E8%BF%AB%E9%81%B7.jpg", "credit": {"name": "上下游新聞", "title": "馬太鞍重建路 03 》以防洪之名強徵農地，居民面臨迫遷，部落憂倒灌", "url": "https://www.newsmarket.com.tw/blog/242555/"}}
+    ],
+    "links": [
+      {"title": "預知災難紀事：馬太鞍溪堰塞湖潰壩事件", "source": "環境資訊中心", "url": "https://www.e-info.org.tw/node/242289", "thumbnail": "https://e-info.org.tw/images/8197040b-e96c-4c54-86cc-76b27071153e.jpg"},
+      {"title": "馬太鞍重建路 03 》以防洪之名強徵農地，居民面臨迫遷，部落憂倒灌", "source": "上下游新聞", "url": "https://www.newsmarket.com.tw/blog/242555/"}
+    ]
+  },
+  {
+    "id": "fataan",
+    "nameLocal": "Fata'an",
+    "nameZh": "馬太鞍農業重災區",
+    "title": "被土砂掩埋的農地，何去何從？",
+    "lat": 23.6765,
+    "lng": 121.4335,
+    "radius": 800,
+    "labelSide": "right",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["馬太鞍農業重災區位於馬太鞍溪南岸、光復溪以北一帶，是 2025 年 9 月 23 日堰塞湖溢流事件中受到嚴重衝擊的農業生產區域。大量土砂覆蓋原有農地，使許多農民失去原本賴以維生的耕作空間。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["依農業部災後復原重建計畫，土砂堆積厚度達 50 公分以上的重災農地約有 163.39 公頃。政府陸續提出土地價購、補助造林及重災區整體規劃等方案，並研議將部分土地作為紀念公園、滯洪及其他公共設施使用，涉及不同形式的土地取得與徵收。"]},
+      {"heading": "居民關切", "paragraphs": ["對農民而言，土地不僅是財產，更是維持家庭生計的生產資源。部分居民希望保留土地所有權、恢復農業生產，或透過「以地易地」取得其他可耕作土地。如何整合不同機關的重建計畫、釐清土地徵收的公益性與必要性，並保障農民長期生計，是重災區未來發展的關鍵。"]}
+    ],
+    "sources": ["光復重災區土地議題分析，第 1、9–15 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/fataan-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "留下的大量泥沙", "src": "story/photos/fataan-2.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "被泥沙淹沒的原本農田", "src": "story/photos/fataan-3.jpg", "credit": {"name": "政大國土服務團"}}
+    ],
+    "links": []
+  },
+  {
+    "id": "tafalong",
+    "nameLocal": "Tafalong",
+    "nameZh": "太巴塱部落",
+    "title": "河床抬升下的排水與土地安全",
+    "lat": 23.6582,
+    "lng": 121.4516,
+    "radius": 700,
+    "labelSide": "bottom",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["太巴塱部落位於馬太鞍溪與光復溪南側。堰塞湖溢流後，流域內大量土砂淤積，河床高程與原有排水條件發生改變，使周邊地區面臨新的淹水風險。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["當主河道河床抬高，聚落及農地的雨水可能難以順利排入河川，形成內水回堵問題。此外，北富段堤防治理工程亦涉及土地用地範圍及徵收議題。"]},
+      {"heading": "核心課題", "paragraphs": ["如何在強化河川防洪設施的同時，兼顧部落既有排水系統、農地利用及土地權益，並避免治理工程將災害風險轉移至其他地區，是太巴塱部落後續需要持續關注的課題。"]}
+    ],
+    "sources": ["馬太鞍溪堰塞湖受災區域圖"],
+    "editorNote": "本區尚缺獨立的土地議題分析文件，暫以地圖標示的議題為主。",
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/tafalong-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "災後曾經滯留的大量垃圾", "src": "https://ourisland.pts.org.tw/sites/default/files/u795/S__41771097_0.jpg", "credit": {"name": "我們的島（公共電視）", "title": "【島在現場】馬太鞍堰塞湖溢流後｜被大量垃圾包圍的太巴塱部落｜2025.9.25", "url": "https://ourisland.pts.org.tw/content/11632"}},
+      {"caption": "現況街景", "src": "story/photos/tafalong-3.jpg", "credit": {"name": "政大國土服務團"}}
+    ],
+    "links": [
+      {"title": "【島在現場】馬太鞍堰塞湖溢流後｜被大量垃圾包圍的太巴塱部落｜2025.9.25", "source": "我們的島（公共電視）", "url": "https://ourisland.pts.org.tw/content/11632", "thumbnail": "https://ourisland.pts.org.tw/sites/default/files/field/image/S__41771098_0.jpg"}
+    ]
+  },
+  {
+    "id": "atomo",
+    "nameLocal": "Atomo",
+    "nameZh": "阿陶莫部落",
+    "title": "位於河流交會處的多重災害風險",
+    "lat": 23.6724,
+    "lng": 121.4669,
+    "radius": 600,
+    "labelSide": "right",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["阿陶莫部落位於花蓮縣光復鄉東富村，鄰近馬太鞍溪與花蓮溪匯流處，地處洪水直衝及河道轉彎的區域，面臨洪流衝擊、土砂淤積及內水回堵等多重災害風險。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["堰塞湖溢流後，河床大幅抬升，使部落周邊野溪及排水溝渠難以自然排水。政府陸續推動高規格堤防、背水堤、水門及抽水設施等防洪措施，並辦理約 12.56 公頃、共 46 筆土地的徵用相關作業，作為防洪與土石暫置空間，其中包含私有原住民保留地。"]},
+      {"heading": "居民關切", "paragraphs": ["居民擔憂上游堤防加高及河道變化，可能使洪水集中衝擊部落。此外，農地遭土砂覆蓋或工程使用，也影響原有農業生計。如何整合全流域防洪工程、改善內水排放、保障土地權益，並建立適切的避難及遷居方案，是阿陶莫部落目前面臨的重要課題。"]}
+    ],
+    "sources": ["阿陶莫土地議題說明，第 1–4 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/atomo-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "緊鄰的馬太鞍溪堤防", "src": "story/photos/atomo-2.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "民宅前堆放的土石堆", "src": "story/photos/atomo-3.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "泥沙遍布的原本農地", "src": "story/photos/atomo-4.jpg", "credit": {"name": "政大國土服務團"}}
+    ],
+    "links": []
+  },
+  {
+    "id": "kalotongan",
+    "nameLocal": "Kalotongan",
+    "nameZh": "加里洞部落",
+    "title": "離災不離村：尋找安全生活的可能",
+    "lat": 23.6931,
+    "lng": 121.4887,
+    "radius": 600,
+    "labelSide": "top",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["加里洞部落位於馬太鞍溪與花蓮溪匯流口北側，鄰近羅莫溪。長期以來，部落低窪地區即面臨淹水與土石流威脅，2025 年堰塞湖溢流事件後，居住安全問題更加迫切。"]},
+      {"heading": "災害與土地課題", "paragraphs": ["大量土砂使花蓮溪河床抬升，形成高於部分周邊地面的懸河現象。政府雖興建背水堤以防止河水倒灌，但部落既有排水溝出口位置較低，仍面臨內水難以排出的困境。背水堤工程也衍生私有土地使用程序及補償合理性的爭議。"]},
+      {"heading": "居民關切", "paragraphs": ["部落族人長期提出「離災不離村」的集體遷居訴求，希望能利用原聚落附近的台糖土地或其他適宜土地，在遠離災害風險的同時，維繫部落原有的文化、生活及社會關係。", "目前部落已成立加里洞低窪地區居民自救會。2026 年 11 月 6 日，花蓮縣政府發函要求光復鄉公所提報永續建設藍圖規劃，以評估部落災害風險、防減災措施及遷居的必要性。"]}
+    ],
+    "sources": ["加里洞土地議題分析，第 1–6、11 頁"],
+    "photos": [
+      {"caption": "空拍全貌", "src": "story/photos/kalotongan-1.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "泥沙遍布的道路", "src": "story/photos/kalotongan-2.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "已接近橋梁高度的土石堆", "src": "story/photos/kalotongan-3.jpg", "credit": {"name": "政大國土服務團"}},
+      {"caption": "堤防工程加速進行中", "src": "story/photos/kalotongan-4.jpg", "credit": {"name": "政大國土服務團"}}
+    ],
+    "links": []
+  },
+  {
+    "id": "cirakayan",
+    "nameLocal": "Cirakayan",
+    "nameZh": "吉拉卡樣部落",
+    "title": "流域整體治理下的部落發展",
+    "lat": 23.7273,
+    "lng": 121.4985,
+    "radius": 600,
+    "labelSide": "left",
+    "sections": [
+      {"heading": "區域介紹", "paragraphs": ["吉拉卡樣部落位於花蓮溪沿岸、萬里溪匯流處附近，是馬太鞍溪流域周邊部落之一。"]},
+      {"heading": "核心課題", "paragraphs": ["馬太鞍溪堰塞湖溢流後，流域內的河道地形、土砂分布及防洪條件發生變化。吉拉卡樣部落周邊的環境安全、土地利用與河川治理之間的關係，仍有待透過現地調查及居民訪談進一步了解。", "本區域的土地議題資料將於後續調查完成後陸續補充。"]}
+    ],
+    "sources": ["馬太鞍溪堰塞湖受災區域圖"],
+    "editorNote": "現有附件未提供本部落的具體受災紀錄，不宜直接認定其有內水回堵或土地徵收問題。位置暫定在 OpenStreetMap 的鳳林鎮山興，請組員確認。",
+    "photos": [],
+    "links": []
+  }
+]

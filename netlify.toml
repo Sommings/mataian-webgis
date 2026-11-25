@@ -1,0 +1,6 @@
+# Netlify 預覽用。網站為了 GitHub Pages 把 base path 設成 /mataian-webgis/（見 vite.config.ts），
+# 但 Netlify 從根目錄提供檔案，所以把 /mataian-webgis/ 底下的請求轉到根目錄。
+[[redirects]]
+  from = "/mataian-webgis/*"
+  to = "/:splat"
+  status = 200
