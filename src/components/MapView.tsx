@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -6,18 +6,23 @@ import {
   Popup,
   useMapEvents,
   useMap,
-  LayersControl,
   GeoJSON,
   FeatureGroup,
   Polygon,      // 引入 Polygon 元件
   CircleMarker, // 引入 CircleMarker 元件
   LayerGroup,   // 引入 LayerGroup 元件（組合多個條帶圖層）
+  ScaleControl,
 } from "react-leaflet";
 import type { Report } from "../types/report";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
-import L, { type LeafletMouseEvent, type LatLngExpression } from "leaflet";
-import { Locate, Trash2, CheckCircle2, Play } from "lucide-react";
+import L, { type LeafletMouseEvent, type PathOptions } from "leaflet";
+import { Trash2, CheckCircle2, Play, Search } from "lucide-react";
+import { MapToolbar, MeasureLayer, type MeasureKind } from "./MapTools";
+import { GUANGFU_BOUNDS } from "../lib/guangfu";
+import LayerPanel, { type OverlayState } from "./LayerPanel";
+import { StoryLayer } from "./StoryMap";
+import type { StoryRegion } from "../types/story";
 
 const normalizeAddress = (addr: string) => {
   return addr
@@ -51,8 +56,11 @@ type MapViewProps = {
   onSelectLocation: (location: { lat: number; lng: number }) => void;
   onConfirmGeneralLocation?: () => void;
   lastSubmittedLocation?: SelectedLocation;
-  mapMode: 'general' | 'instant';
+  // query：只瀏覽，點地圖不選點；general、instant：沿用原本兩種填報
+  mapMode: 'query' | 'general' | 'instant';
   onPolygonConfirm?: (polygonPoints: [number, number][]) => void;
+  /** 故事地圖模式：顯示區域標籤，隱藏填報點位 */
+  story?: { regions: StoryRegion[]; selectedId: string | null; onSelect: (id: string) => void } | null;
 };
 
 const createCustomIcon = (type: "default" | "pulse" | "bounce") => {
@@ -90,6 +98,59 @@ const sentinel2TileUrl =
   "https://planetarycomputer.microsoft.com/api/data/v1/item/tiles/WebMercatorQuad/{z}/{x}/{y}@1x.png" +
   `?collection=sentinel-2-l2a&item=${sentinel2Item}&assets=visual&asset_bidx=visual%7C1%2C2%2C3&nodata=0`;
 
+// 圖層面板的清單。基本底圖擇一；額外圖層可多選，各自調透明度
+const BASE_LAYERS = [
+  { id: "emap", name: "國土測繪圖資服務雲 (電子地圖)" },
+  { id: "photo2", name: "國土測繪圖資服務雲-正射影像 (正射影像圖)" },
+  { id: "sentinel2", name: `最新衛星影像 ${sentinel2Date} (Sentinel-2, 10m)` },
+  { id: "aerial20251116", name: "災後航照 2025/11/16 (航遙測分署)" },
+  { id: "photo2025", name: "國土測繪圖資服務雲-114年正射影像 (災前)" },
+  { id: "emap5", name: "國土測繪圖資服務雲-混合地圖 (電子地圖)" },
+  { id: "hlmap", name: "花蓮縣一般版地圖" },
+  { id: "hlimage", name: "花蓮縣正射影像 (災前空照圖)" },
+];
+
+const OVERLAYS = [
+  { id: "guangfu", name: "光復鄉界", on: false },
+  { id: "town", name: "鄉鎮市區界 (國土測繪服務雲)", on: false },
+  { id: "village", name: "村里界 (國土測繪服務雲)", on: false },
+  { id: "landsect", name: "段籍圖-段界 (國土測繪服務雲)", on: false },
+  { id: "dikeLand", name: "堤防用地範圍線", on: true },
+  { id: "governance", name: "治理計畫線", on: true },
+  { id: "backwater", name: "背水堤範圍", on: true },
+  { id: "reserve", name: "原住民保留地(萬榮.鳳林.光復)(113年資料)", on: false },
+  { id: "taisugar", name: "台糖公司可供釋出土地 (花蓮縣)", on: false },
+  { id: "nationalLand", name: "花蓮縣公有土地(含屬性資料)", on: false },
+  { id: "cadastral", name: "花蓮縣光復鄉地籍圖(107年資料)", on: false },
+  { id: "landOpendata", name: "公有土地圖層 (國土測繪服務雲)", on: false },
+  { id: "upZone", name: "都市計畫土地使用分區圖", on: false },
+];
+
+const INITIAL_OVERLAY_STATE: OverlayState = Object.fromEntries(
+  OVERLAYS.map((o) => [o.id, { on: o.on, transparency: 0 }])
+);
+
+// 向量圖層原本的樣式；透明度拉桿會等比例調整線與填色的不透明度
+const GUANGFU_STYLE: PathOptions = { color: "#000000", weight: 2.5, dashArray: "8 6", fill: false, opacity: 1 };
+const DIKE_LAND_STYLE: PathOptions = { color: "#ef4444", weight: 3, opacity: 0.9, fillColor: "#ef4444", fillOpacity: 0.2 };
+const GOVERNANCE_STYLE: PathOptions = { color: "#f59e0b", weight: 3, opacity: 0.95 };
+const BACKWATER_STYLE: PathOptions = { color: "#06b6d4", weight: 3, opacity: 0.9, fillColor: "#06b6d4", fillOpacity: 0.25 };
+const RESERVE_STYLE: PathOptions = { color: "#d97706", weight: 2, opacity: 0.8, fillColor: "#f59e0b", fillOpacity: 0.8 };
+const TAISUGAR_STYLE: PathOptions = { color: "#059669", weight: 2, opacity: 0.85, fillColor: "#10b981", fillOpacity: 0.5 };
+const NATIONAL_LAND_STYLE: PathOptions = { color: "#1d4ed8", weight: 1.5, opacity: 0.85, fillColor: "#3b82f6", fillOpacity: 0.4 };
+
+// 只在該圖層的透明度改變時產生新樣式，避免大型 GeoJSON 每次重繪都重新套樣式
+function usePathStyle(base: PathOptions, factor: number): PathOptions {
+  return useMemo(
+    () => ({
+      ...base,
+      opacity: (base.opacity ?? 1) * factor,
+      fillOpacity: (base.fillOpacity ?? 0.2) * factor,
+    }),
+    [base, factor]
+  );
+}
+
 function MapUpdater({ center }: { center: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
@@ -118,13 +179,14 @@ function LocationPicker({
   onAddDrawingPoint,
 }: {
   onSelectLocation: (location: { lat: number; lng: number }) => void;
-  mapMode: 'general' | 'instant';
+  mapMode: 'query' | 'general' | 'instant';
   isDrawing: boolean;
   onAddDrawingPoint: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e: LeafletMouseEvent) {
       const { lat, lng } = e.latlng;
+      if (mapMode === 'query') return;
       if (mapMode === 'instant' && isDrawing) {
         onAddDrawingPoint(lat, lng);
       } else {
@@ -181,22 +243,10 @@ function DetailBlock({
   );
 }
 
-function ZoomTracker({
-  onZoomChange,
-  onOverlayToggle,
-}: {
-  onZoomChange: (zoom: number) => void;
-  onOverlayToggle: (name: string, enabled: boolean) => void;
-}) {
+function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
   const map = useMapEvents({
     zoomend() {
       onZoomChange(map.getZoom());
-    },
-    overlayadd(e) {
-      onOverlayToggle(e.name, true);
-    },
-    overlayremove(e) {
-      onOverlayToggle(e.name, false);
     },
   });
 
@@ -215,9 +265,8 @@ function MapView({
   lastSubmittedLocation,
   mapMode,
   onPolygonConfirm,
+  story,
 }: MapViewProps) {
-  const defaultCenter: LatLngExpression = [23.669, 121.423];
-
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
@@ -227,13 +276,33 @@ function MapView({
   const [lightboxData, setLightboxData] = useState<{ photos: string[]; index: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(13);
-  const [cadastralEnabled, setCadastralEnabled] = useState(false);
   const [nationalLandGeojson, setNationalLandGeojson] = useState<any>(null);
   const [isNationalLandLoading, setIsNationalLandLoading] = useState(false);
-  const [nationalLandEnabled, setNationalLandEnabled] = useState(false);
   const [dikeLandLineGeojson, setDikeLandLineGeojson] = useState<FeatureCollection | null>(null);
   const [governanceLineGeojson, setGovernanceLineGeojson] = useState<FeatureCollection | null>(null);
   const [backwaterDikeGeojson, setBackwaterDikeGeojson] = useState<FeatureCollection | null>(null);
+  const [guangfuGeojson, setGuangfuGeojson] = useState<FeatureCollection | null>(null);
+
+  // 右側工具列：圖層面板開關與測量
+  const [map, setMap] = useState<L.Map | null>(null);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [activeBase, setActiveBase] = useState(BASE_LAYERS[0].id);
+  const [overlayState, setOverlayState] = useState<OverlayState>(INITIAL_OVERLAY_STATE);
+  const isOn = (id: string) => overlayState[id].on;
+  // 透明度 0% = 完全不透明
+  const opacityOf = (id: string) => 1 - overlayState[id].transparency / 100;
+  const cadastralEnabled = isOn("cadastral");
+  const nationalLandEnabled = isOn("nationalLand");
+
+  const guangfuStyle = usePathStyle(GUANGFU_STYLE, opacityOf("guangfu"));
+  const dikeLandStyle = usePathStyle(DIKE_LAND_STYLE, opacityOf("dikeLand"));
+  const governanceStyle = usePathStyle(GOVERNANCE_STYLE, opacityOf("governance"));
+  const backwaterStyle = usePathStyle(BACKWATER_STYLE, opacityOf("backwater"));
+  const reserveStyle = usePathStyle(RESERVE_STYLE, opacityOf("reserve"));
+  const taiSugarStyle = usePathStyle(TAISUGAR_STYLE, opacityOf("taisugar"));
+  const nationalLandStyle = usePathStyle(NATIONAL_LAND_STYLE, opacityOf("nationalLand"));
+  const [measureKind, setMeasureKind] = useState<MeasureKind | null>(null);
+  const [measurePoints, setMeasurePoints] = useState<[number, number][]>([]);
 
   // PPGIS 多邊形災害範圍繪製 State
   const [isDrawing, setIsDrawing] = useState(false);
@@ -269,6 +338,11 @@ function MapView({
       .then((res) => res.json())
       .then((data) => setBackwaterDikeGeojson(data))
       .catch((err) => console.error("無法載入背水堤範圍 JSON:", err));
+
+    fetch(`${import.meta.env.BASE_URL}guangfu_boundary.geojson`)
+      .then((res) => res.json())
+      .then((data) => setGuangfuGeojson(data))
+      .catch((err) => console.error("無法載入光復鄉界 GeoJSON:", err));
   }, []);
 
   useEffect(() => {
@@ -287,11 +361,23 @@ function MapView({
     }
   }, [nationalLandEnabled, nationalLandGeojson, isNationalLandLoading]);
 
+  // 故事地圖只呈現區域故事，不顯示填報點位
+  const visibleReports = story ? [] : reports;
+
   // 重置即時模式的繪圖 State，如果 mapMode 切換
   useEffect(() => {
     setIsDrawing(false);
     setDrawingPoints([]);
+    setMeasureKind(null);
+    setMeasurePoints([]);
   }, [mapMode]);
+
+  // 測量時地圖雙擊不放大，避免連點兩個頂點時跳畫面
+  useEffect(() => {
+    if (!map) return;
+    if (measureKind) map.doubleClickZoom.disable();
+    else map.doubleClickZoom.enable();
+  }, [map, measureKind]);
 
   const handleLocate = () => {
     if (!navigator.geolocation) {
@@ -458,7 +544,7 @@ function MapView({
         <GeoJSON
           key={dikeLandLineGeojson.features.length}
           data={dikeLandLineGeojson}
-          style={{ color: "#ef4444", weight: 3, opacity: 0.9, fillColor: "#ef4444", fillOpacity: 0.2 }}
+          style={dikeLandStyle}
         />
       )}
     </FeatureGroup>
@@ -470,7 +556,7 @@ function MapView({
         <GeoJSON
           key={governanceLineGeojson.features.length}
           data={governanceLineGeojson}
-          style={{ color: "#f59e0b", weight: 3, opacity: 0.95 }}
+          style={governanceStyle}
         />
       )}
     </FeatureGroup>
@@ -482,7 +568,7 @@ function MapView({
         <GeoJSON
           key={backwaterDikeGeojson.features.length}
           data={backwaterDikeGeojson}
-          style={{ color: "#06b6d4", weight: 3, opacity: 0.9, fillColor: "#06b6d4", fillOpacity: 0.25 }}
+          style={backwaterStyle}
         />
       )}
     </FeatureGroup>
@@ -494,13 +580,7 @@ function MapView({
         <GeoJSON
           key={reserveGeojson.features ? reserveGeojson.features.length : "loaded"}
           data={reserveGeojson}
-          style={{
-            color: "#d97706",
-            weight: 2,
-            opacity: 0.8,
-            fillColor: "#f59e0b",
-            fillOpacity: 0.8,
-          }}
+          style={reserveStyle}
           onEachFeature={(feature, layer) => {
             if (feature.properties) {
               const props = feature.properties;
@@ -525,13 +605,7 @@ function MapView({
         <GeoJSON
           key={taiSugarGeojson.features ? taiSugarGeojson.features.length : "loaded_ts"}
           data={taiSugarGeojson}
-          style={{
-            color: "#059669",
-            weight: 2,
-            opacity: 0.85,
-            fillColor: "#10b981",
-            fillOpacity: 0.5,
-          }}
+          style={taiSugarStyle}
           onEachFeature={(feature, layer) => {
             if (feature.properties) {
               const props = feature.properties;
@@ -557,13 +631,7 @@ function MapView({
         <GeoJSON
           key={nationalLandGeojson.features ? nationalLandGeojson.features.length : "loaded_nl"}
           data={nationalLandGeojson}
-          style={{
-            color: "#1d4ed8",
-            weight: 1.5,
-            opacity: 0.85,
-            fillColor: "#3b82f6",
-            fillOpacity: 0.4,
-          }}
+          style={nationalLandStyle}
           onEachFeature={(feature, layer) => {
             if (feature.properties) {
               const props = feature.properties;
@@ -603,39 +671,22 @@ function MapView({
   );
 
   return (
-    <div>
+    <div className={`map-view${layersOpen ? " layers-open" : ""}${measureKind ? " measuring" : ""}`}>
       <div className="map-search-bar">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="輸入地址搜尋..."
-          style={{
-            flex: 1,
-            minWidth: "200px",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid #d1d5db",
-            fontSize: "14px",
-          }}
+          placeholder="搜尋地址"
+          aria-label="搜尋地址"
         />
         <button
           onClick={handleSearch}
           disabled={isSearching || isLocating}
-          style={{
-            flex: "0 0 auto",
-            padding: "10px 20px",
-            borderRadius: "8px",
-            border: "none",
-            backgroundColor: "#3b82f6",
-            color: "white",
-            fontWeight: 600,
-            cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
-            opacity: (isSearching || isLocating) ? 0.7 : 1,
-          }}
+          title="搜尋"
         >
-          {isSearching ? "搜尋中..." : "搜尋地址"}
+          {isSearching ? <span className="locate-spinner" /> : <Search size={18} />}
         </button>
       </div>
 
@@ -677,7 +728,7 @@ function MapView({
                 }}
               >
                 <Play size={16} />
-                <span>開始繪製及時災情範圍</span>
+                <span>開始繪製即時災情範圍</span>
               </button>
             ) : (
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", justifyContent: "center" }}>
@@ -789,7 +840,7 @@ function MapView({
           <div
             style={{
               position: "absolute",
-              top: mapMode === 'instant' ? "220px" : "90px", // 在即時模式與一般模式下避開頂部元件
+              top: mapMode === 'instant' ? "140px" : "72px", // 避開左上搜尋欄與即時模式的繪圖按鈕
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 1000,
@@ -814,8 +865,9 @@ function MapView({
         )}
         
         <MapContainer
-          center={defaultCenter}
-          zoom={13}
+          ref={setMap}
+          bounds={GUANGFU_BOUNDS} // 開啟時直接顯示整個光復鄉
+          zoomControl={false} // 縮放改由右側工具列操作
           maxZoom={22} // 解鎖地圖容器的最大縮放限制
           preferCanvas={true}
           style={{
@@ -826,166 +878,151 @@ function MapView({
             overflow: "hidden",
           }}
         >
-          <LayersControl position="topright">
-            <LayersControl.BaseLayer checked name="國土測繪圖資服務雲 (電子地圖)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="國土測繪圖資服務雲-正射影像 (正射影像圖)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name={`最新衛星影像 ${sentinel2Date} (Sentinel-2, 10m)`}>
-              <TileLayer
-                attribution="Contains modified Copernicus Sentinel data 2026 &middot; Microsoft Planetary Computer"
-                url={sentinel2TileUrl}
-                maxNativeZoom={15}
-                maxZoom={20}
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="災後航照 2025/11/16 (航遙測分署)">
-              <LayerGroup>
-                {postDisasterAerialUrls.map((url) => (
-                  <TileLayer
-                    key={url}
-                    attribution="&copy; 農業部林業及自然保育署航測及遙測分署、內政部國土測繪中心"
-                    url={url}
-                    maxZoom={20}
-                  />
-                ))}
-              </LayerGroup>
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="國土測繪圖資服務雲-114年正射影像 (災前)">
+          {/* 基本底圖（擇一） */}
+          {activeBase === "emap" && (
+            <TileLayer
+              key="emap"
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+            />
+          )}
+          {activeBase === "photo2" && (
+            <TileLayer
+              key="photo2"
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/PHOTO2/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+            />
+          )}
+          {activeBase === "sentinel2" && (
+            <TileLayer
+              key="sentinel2"
+              attribution="Contains modified Copernicus Sentinel data 2026 &middot; Microsoft Planetary Computer"
+              url={sentinel2TileUrl}
+              maxNativeZoom={15}
+              maxZoom={20}
+            />
+          )}
+          {activeBase === "aerial20251116" && (
+            <LayerGroup key="aerial20251116">
+              {postDisasterAerialUrls.map((url) => (
+                <TileLayer
+                  key={url}
+                  attribution="&copy; 農業部林業及自然保育署航測及遙測分署、內政部國土測繪中心"
+                  url={url}
+                  maxZoom={20}
+                />
+              ))}
+            </LayerGroup>
+          )}
+          {activeBase === "photo2025" && (
+            <TileLayer
+              key="photo2025"
+              attribution="&copy; 內政部國土測繪中心"
+              url={nlscTileUrl("PHOTO2025")}
+              maxZoom={20}
+            />
+          )}
+          {activeBase === "emap5" && (
+            <TileLayer
+              key="emap5"
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/EMAP5/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+            />
+          )}
+          {activeBase === "hlmap" && (
+            <TileLayer
+              key="hlmap"
+              attribution="&copy; 花蓮縣政府"
+              url="https://map.hl.gov.tw/arcgis/rest/services/HLMAP_3857/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={20}
+            />
+          )}
+          {/* 縣府圖磚在 z14 以下只有空白圖框，這幾層改用 114 年正射補上 */}
+          {activeBase === "hlimage" && (
+            <LayerGroup key="hlimage">
               <TileLayer
                 attribution="&copy; 內政部國土測繪中心"
                 url={nlscTileUrl("PHOTO2025")}
-                maxZoom={20}
+                maxZoom={14}
               />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="國土測繪圖資服務雲-混合地圖 (電子地圖)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/EMAP5/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-              />
-            </LayersControl.BaseLayer>
-
-            <LayersControl.BaseLayer name="花蓮縣一般版地圖">
               <TileLayer
                 attribution="&copy; 花蓮縣政府"
-                url="https://map.hl.gov.tw/arcgis/rest/services/HLMAP_3857/MapServer/tile/{z}/{y}/{x}"
+                url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
+                minZoom={15}
                 maxZoom={20}
               />
-            </LayersControl.BaseLayer>
+            </LayerGroup>
+          )}
 
-            {/* 縣府圖磚在 z14 以下只有空白圖框，這幾層改用 114 年正射補上 */}
-            <LayersControl.BaseLayer name="花蓮縣正射影像 (災前空照圖)">
-              <LayerGroup>
-                <TileLayer
-                  attribution="&copy; 內政部國土測繪中心"
-                  url={nlscTileUrl("PHOTO2025")}
-                  maxZoom={14}
-                />
-                <TileLayer
-                  attribution="&copy; 花蓮縣政府"
-                  url="https://map.hl.gov.tw/arcgis/rest/services/HL_Image_3857/MapServer/tile/{z}/{y}/{x}"
-                  minZoom={15}
-                  maxZoom={20}
-                />
-              </LayerGroup>
-            </LayersControl.BaseLayer>
-
-            <LayersControl.Overlay name="鄉鎮市區界 (國土測繪服務雲)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/TOWN/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-              />
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="村里界 (國土測繪服務雲)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/Village/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-              />
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="段籍圖-段界 (國土測繪服務雲)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/LANDSECT/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-                opacity={0.8}
-              />
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay checked name="堤防用地範圍線">
-              {dikeLandLineLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay checked name="治理計畫線">
-              {governanceLineLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay checked name="背水堤範圍">
-              {backwaterDikeLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="原住民保留地(萬榮.鳳林.光復)(113年資料)">
-              {reserveGeojsonLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="台糖公司可供釋出土地 (花蓮縣)">
-              {taiSugarGeojsonLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="花蓮縣公有土地(含屬性資料)">
-              {nationalLandGeojsonLayer}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="花蓮縣光復鄉地籍圖(107年資料)">
-              {zoomLevel >= 13 && (
-                <TileLayer
-                  attribution="&copy; 花蓮縣光復地政事務所"
-                  url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
-                  maxZoom={22}
-                  maxNativeZoom={18} // 設為 18 作防禦性容錯，大於 18 時自動放大 18 級切片。若確認 19、20 資料夾已放入此專案路徑，可改為 20 以加載實體高清切片。
-                  minZoom={13}
-                  opacity={0.85}
-                />
-              )}
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="公有土地圖層 (國土測繪服務雲)">
-              <TileLayer
-                attribution="&copy; 內政部國土測繪中心"
-                url="https://wmts.nlsc.gov.tw/wmts/LAND_OPENDATA/default/GoogleMapsCompatible/{z}/{y}/{x}"
-                maxZoom={20}
-                opacity={0.75}
-              />
-            </LayersControl.Overlay>
-
-            <LayersControl.Overlay name="都市計畫土地使用分區圖">
-              <TileLayer
-                attribution="&copy; 花蓮縣政府"
-                url="https://map.hl.gov.tw/arcgis/rest/services/UP/UP_ZONE_3857/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={22}
-                opacity={0.6}
-              />
-            </LayersControl.Overlay>
-          </LayersControl>
+          {/* 額外圖層（可多選，透明度由圖層面板調整）。圖磚圖層設 zIndex 疊在底圖上方，換底圖時不會被蓋住 */}
+          {isOn("guangfu") && guangfuGeojson && (
+            <GeoJSON data={guangfuGeojson} interactive={false} style={guangfuStyle} />
+          )}
+          {isOn("town") && (
+            <TileLayer
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/TOWN/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+              opacity={opacityOf("town")}
+              zIndex={11}
+            />
+          )}
+          {isOn("village") && (
+            <TileLayer
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/Village/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+              opacity={opacityOf("village")}
+              zIndex={12}
+            />
+          )}
+          {isOn("landsect") && (
+            <TileLayer
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/LANDSECT/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+              opacity={0.8 * opacityOf("landsect")}
+              zIndex={13}
+            />
+          )}
+          {isOn("dikeLand") && dikeLandLineLayer}
+          {isOn("governance") && governanceLineLayer}
+          {isOn("backwater") && backwaterDikeLayer}
+          {isOn("reserve") && reserveGeojsonLayer}
+          {isOn("taisugar") && taiSugarGeojsonLayer}
+          {isOn("nationalLand") && nationalLandGeojsonLayer}
+          {isOn("cadastral") && zoomLevel >= 13 && (
+            <TileLayer
+              attribution="&copy; 花蓮縣光復地政事務所"
+              url={`${import.meta.env.BASE_URL}cadastral_tiles/{z}/{x}/{y}.png`}
+              maxZoom={22}
+              maxNativeZoom={18} // 設為 18 作防禦性容錯，大於 18 時自動放大 18 級切片。若確認 19、20 資料夾已放入此專案路徑，可改為 20 以加載實體高清切片。
+              minZoom={13}
+              opacity={0.85 * opacityOf("cadastral")}
+              zIndex={14}
+            />
+          )}
+          {isOn("landOpendata") && (
+            <TileLayer
+              attribution="&copy; 內政部國土測繪中心"
+              url="https://wmts.nlsc.gov.tw/wmts/LAND_OPENDATA/default/GoogleMapsCompatible/{z}/{y}/{x}"
+              maxZoom={20}
+              opacity={0.75 * opacityOf("landOpendata")}
+              zIndex={15}
+            />
+          )}
+          {isOn("upZone") && (
+            <TileLayer
+              attribution="&copy; 花蓮縣政府"
+              url="https://map.hl.gov.tw/arcgis/rest/services/UP/UP_ZONE_3857/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={22}
+              opacity={0.6 * opacityOf("upZone")}
+              zIndex={16}
+            />
+          )}
 
           {/* 即時受災多邊形與頂點的渲染 */}
           {isDrawing && drawingPoints.length > 0 && (
@@ -1011,90 +1048,39 @@ function MapView({
             </>
           )}
 
-          {/* 自訂原生 Locate 控制項 (定位在縮放控制項下方) */}
-          <div 
-            className="leaflet-control-locate leaflet-bar"
-            style={{
-              position: "absolute",
-              top: "154px", /* 縮放控制項 top 88px + 60px 高度 + 6px 間距 = 154px */
-              left: "10px",
-              zIndex: 1000,
-              pointerEvents: "auto",
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleLocate}
-              disabled={isSearching || isLocating}
-              title={isLocating ? "正在定位中..." : "定位目前位置"}
-              style={{
-                width: "30px",
-                height: "30px",
-                backgroundColor: "white",
-                border: "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: (isSearching || isLocating) ? "not-allowed" : "pointer",
-                color: isLocating ? "#1d4ed8" : "#2563eb", // 預設改成更為明顯的藍色
-                padding: 0,
-                outline: "none",
-                boxSizing: "border-box",
-                transition: "all 0.2s",
-              }}
-              onMouseOver={(e) => {
-                if (!isSearching && !isLocating) {
-                  e.currentTarget.style.backgroundColor = "#f4f4f5";
-                  e.currentTarget.style.color = "#1d4ed8"; // hover 時深藍色
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!isSearching && !isLocating) {
-                  e.currentTarget.style.backgroundColor = "white";
-                  e.currentTarget.style.color = "#2563eb"; // 恢復科技藍
-                }
-              }}
-            >
-              {isLocating ? (
-                <div className="locate-spinner"></div>
-              ) : (
-                <Locate size={16} />
-              )}
-            </button>
-          </div>
-
           <MapUpdater center={mapCenter} />
           <FlyToUpdater location={lastSubmittedLocation} />
           
-          <LocationPicker 
-            onSelectLocation={onSelectLocation} 
-            mapMode={mapMode}
-            isDrawing={isDrawing}
-            onAddDrawingPoint={handleAddDrawingPoint}
-          />
+          {measureKind ? (
+            <MeasureLayer
+              kind={measureKind}
+              points={measurePoints}
+              onAddPoint={(p) => setMeasurePoints((prev) => [...prev, p])}
+            />
+          ) : (
+            <LocationPicker
+              onSelectLocation={onSelectLocation}
+              mapMode={mapMode}
+              isDrawing={isDrawing}
+              onAddDrawingPoint={handleAddDrawingPoint}
+            />
+          )}
+
+          <ScaleControl position="bottomleft" imperial={false} />
           
-          <ZoomTracker
-            onZoomChange={setZoomLevel}
-            onOverlayToggle={(name, enabled) => {
-              if (name.includes("光復鄉地籍圖")) {
-                setCadastralEnabled(enabled);
-              }
-              if (name.includes("國有土地") || name.includes("公有土地")) {
-                setNationalLandEnabled(enabled);
-              }
-            }}
-          />
+          <ZoomTracker onZoomChange={setZoomLevel} />
 
           {selectedLocation && (
             <Marker position={[selectedLocation.lat, selectedLocation.lng]} icon={bounceIcon}>
               <Popup>
                 <div style={{ minWidth: "220px", fontSize: "14px" }}>
                   <p style={{ margin: "0 0 8px 0", fontWeight: 700, fontSize: "15px", color: "#1e3a8a" }}>
-                    🎯 已選取填報位置
+                    {mapMode === 'query' ? "📍 搜尋到的位置" : "🎯 已選取填報位置"}
                   </p>
                   <PopupRow label="緯度：" value={selectedLocation.lat} />
                   <PopupRow label="經度：" value={selectedLocation.lng} />
-                  
+
+                  {mapMode !== 'query' && (
                   <button
                     onClick={() => {
                       if (onConfirmGeneralLocation) {
@@ -1124,12 +1110,13 @@ function MapView({
                   >
                     📝 確認點位，開始填報
                   </button>
+                  )}
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {reports
+          {visibleReports
             .filter((report) => report.lat !== null && report.lng !== null && parsePolygonFromAddress(report.address) === null)
             .map((report, index) => {
               const isLatest = lastSubmittedLocation &&
@@ -1279,7 +1266,7 @@ function MapView({
             })}
 
           {/* 渲染所有已上載的即時災情多邊形災害範圍 */}
-          {reports.map((report, idx) => {
+          {visibleReports.map((report, idx) => {
             const polygonPoints = parsePolygonFromAddress(report.address);
             if (!polygonPoints) return null;
 
@@ -1352,7 +1339,40 @@ function MapView({
               </Polygon>
             );
           })}
+          {story && <StoryLayer regions={story.regions} selectedId={story.selectedId} onSelect={story.onSelect} />}
         </MapContainer>
+
+        <MapToolbar
+          map={map}
+          layersOpen={layersOpen}
+          onToggleLayers={() => setLayersOpen((open) => !open)}
+          onLocate={handleLocate}
+          isLocating={isLocating}
+          measureKind={measureKind}
+          onMeasureKindChange={(kind) => {
+            if (kind !== measureKind) setMeasurePoints([]);
+            setMeasureKind(kind);
+          }}
+          measurePoints={measurePoints}
+          onClearMeasure={() => setMeasurePoints([])}
+        />
+
+        {layersOpen && (
+          <LayerPanel
+            baseLayers={BASE_LAYERS}
+            activeBase={activeBase}
+            onBaseChange={setActiveBase}
+            overlays={OVERLAYS}
+            overlayState={overlayState}
+            onToggleOverlay={(id, on) =>
+              setOverlayState((prev) => ({ ...prev, [id]: { ...prev[id], on } }))
+            }
+            onTransparencyChange={(id, transparency) =>
+              setOverlayState((prev) => ({ ...prev, [id]: { ...prev[id], transparency } }))
+            }
+            onClose={() => setLayersOpen(false)}
+          />
+        )}
       </div>
 
       {lightboxData && (

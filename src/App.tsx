@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Map, FileText } from "lucide-react";
+import { Map, FileText, X } from "lucide-react";
 import ReportForm from "./components/ReportForm";
 import MapView from "./components/MapView";
 import type { Report } from "./types/report";
 import { supabase } from "./lib/supabase";
 import SuccessModal from "./components/SuccessModal";
 import LandingPage from "./components/LandingPage";
+import AppHeader, { type AppMode } from "./components/AppHeader";
+import { StoryPanel } from "./components/StoryMap";
+import { STORY_REGIONS } from "./lib/story";
 
 type SelectedLocation = {
   lat: number;
@@ -79,8 +82,12 @@ function mapRowToReport(row: ReportRow): Report {
 }
 
 function App() {
-  // 視圖狀態：landing (首頁), general (一般災情填報), instant (即時災情填報)
-  const [view, setView] = useState<'landing' | 'general' | 'instant'>('landing');
+  // 進站直接看地圖。mode：查詢、回報、故事地圖；回報時再選一般或即時填報
+  const [mode, setMode] = useState<AppMode>('query');
+  const [reportType, setReportType] = useState<'general' | 'instant' | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [storyRegionId, setStoryRegionId] = useState<string | null>(null);
+  const mapMode = mode === 'report' && reportType ? reportType : 'query';
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocation>(null);
@@ -92,11 +99,11 @@ function App() {
   const [instantPolygon, setInstantPolygon] = useState<[number, number][]>([]);
 
   useEffect(() => {
-    // 當切換視圖（如回到首頁、切換一般/即時模式）時，重置選點與多邊形狀態，確保一開始系統不會有預設點位
+    // 切換模式或填報類型時，重置選點與多邊形狀態，確保一開始系統不會有預設點位
     setSelectedLocation(null);
     setInstantPolygon([]);
     setIsFormOpen(false);
-  }, [view]);
+  }, [mapMode]);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -174,52 +181,29 @@ function App() {
     setIsSuccessModalOpen(true);
   };
 
-  // 1. 條件渲染首頁 LandingPage
-  if (view === 'landing') {
-    return (
-      <LandingPage
-        onEnterGeneral={() => setView('general')}
-        onEnterInstant={() => setView('instant')}
-        reportCount={reports.length}
-      />
-    );
-  }
+  const enterReport = (type: 'general' | 'instant') => {
+    setMode('report');
+    setReportType(type);
+    setAboutOpen(false);
+  };
 
-  // 2. 填報地圖主 UI 面板
   return (
-    <div className="app-wrapper">
+    <div className={`app-wrapper${mapMode !== 'query' ? ' has-bottom-nav' : ''}`}>
       <div className="app-container">
-        <div className="app-floating-header">
-          <div className="header-left">
-            <h1 className="header-title">
-              花蓮馬太鞍溪堰塞湖災害參與式地圖
-            </h1>
-            <span className={`mode-badge ${view === 'instant' ? 'instant' : 'general'}`}>
-              {view === 'instant' ? "🚨 即時災情填報模式" : "📋 一般災情填報模式"}
-            </span>
-          </div>
-
-          <div className="header-right">
-            {loading && (
-              <span className="header-loading-text">
-                資料載入中...
-              </span>
-            )}
-            <button
-              onClick={() => {
-                setView('landing');
-                setInstantPolygon([]); // 清除多邊形狀態
-                setIsFormOpen(false); // 關閉表單側邊欄
-              }}
-              className="back-btn"
-            >
-              📖 返回專案介紹
-            </button>
-          </div>
-        </div>
+        <AppHeader
+          mode={mode}
+          onModeChange={(next) => {
+            setMode(next);
+            if (next !== 'report') setReportType(null);
+            if (next !== 'story') setStoryRegionId(null);
+          }}
+          onOpenAbout={() => setAboutOpen(true)}
+          loading={loading}
+        />
 
         <div className="app-content-grid">
-          {/* 填報表單側邊欄 (Disfactory 風格) */}
+          {/* 填報表單側邊欄：只在回報災情模式出現，查詢與故事地圖不掛載 */}
+          {mode === 'report' && (
           <div className={`app-form-panel ${isFormOpen ? 'open' : ''}`}>
             {isFormOpen && (
               <button
@@ -255,7 +239,7 @@ function App() {
                 setIsFormOpen(false); // 成功填報後自動收起側邊欄
               }}
               selectedLocation={selectedLocation}
-              defaultTab={view === 'instant' ? 'emergency' : 'detailed'}
+              defaultTab={reportType === 'instant' ? 'emergency' : 'detailed'}
               instantPolygon={instantPolygon}
               onPolygonClear={() => {
                 setInstantPolygon([]);
@@ -263,6 +247,7 @@ function App() {
               }}
             />
           </div>
+          )}
 
           {/* 地圖滿版區塊 */}
           <div className="app-map-panel">
@@ -278,18 +263,60 @@ function App() {
                 setIsFormOpen(true); // 點擊氣泡內的確認按鈕後彈出表單
               }}
               lastSubmittedLocation={lastSubmittedLocation}
-              mapMode={view}
+              mapMode={mapMode}
+              story={mode === 'story' ? { regions: STORY_REGIONS, selectedId: storyRegionId, onSelect: setStoryRegionId } : null}
               onPolygonConfirm={(polygonPoints) => {
                 setInstantPolygon(polygonPoints);
                 setIsFormOpen(true); // 確認多邊形繪製後自動彈出表單
               }}
             />
+
+            {mode === 'story' && (
+              <StoryPanel regions={STORY_REGIONS} selectedId={storyRegionId} onSelect={setStoryRegionId} />
+            )}
+
+            {mode === 'report' && (
+              <div className={`report-type-bar${reportType ? " chosen" : ""}`} role="group" aria-label="回報類型">
+                {!reportType && <p className="report-type-hint">請選擇要回報的類型</p>}
+                <div className="report-type-buttons">
+                  <button
+                    type="button"
+                    className={reportType === 'general' ? 'active' : ''}
+                    aria-pressed={reportType === 'general'}
+                    onClick={() => setReportType('general')}
+                  >
+                    一般災情填報
+                  </button>
+                  <button
+                    type="button"
+                    className={reportType === 'instant' ? 'active' : ''}
+                    aria-pressed={reportType === 'instant'}
+                    onClick={() => setReportType('instant')}
+                  >
+                    即時災情填報
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-
       </div>
 
+      {aboutOpen && (
+        <div className="about-overlay" role="dialog" aria-modal="true" aria-label="關於這個地圖">
+          <button type="button" className="about-close" onClick={() => setAboutOpen(false)}>
+            <X size={18} />
+            <span>回到地圖</span>
+          </button>
+          <LandingPage
+            onEnterGeneral={() => enterReport('general')}
+            onEnterInstant={() => enterReport('instant')}
+            reportCount={reports.length}
+          />
+        </div>
+      )}
+
+      {mode === 'report' && (
       <SuccessModal
         isOpen={isSuccessModalOpen}
         onClose={() => {
@@ -299,8 +326,10 @@ function App() {
         }}
         reportCount={reports.length}
       />
+      )}
 
-      {/* 手動同步移動端底層導航至側邊欄狀態 */}
+      {/* 手動同步移動端底層導航至側邊欄狀態（只在填報時出現） */}
+      {mapMode !== 'query' && (
       <div className="mobile-bottom-nav">
         <button
           className={!isFormOpen ? 'active' : ''}
@@ -317,6 +346,7 @@ function App() {
           <span>填報災情</span>
         </button>
       </div>
+      )}
     </div>
   );
 }
