@@ -1800,15 +1800,17 @@ code {
   text-underline-offset: 4px;
 }
 
+/* 主視覺用灰底黑字，比全黑柔和 */
 .about-hero {
-  background: var(--ink);
-  color: var(--white);
+  background: var(--paper);
+  color: var(--ink);
   padding-block: 56px 64px;
+  border-bottom: 1px solid var(--line);
 }
 
 .about-eyebrow {
   margin: 0 0 8px;
-  color: var(--amber);
+  color: #8a5a00;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1821,7 +1823,7 @@ code {
   font-weight: 900;
   line-height: 1.25;
   letter-spacing: 0.03em;
-  color: var(--white);
+  color: var(--ink);
   text-wrap: balance;
 }
 
@@ -1829,7 +1831,7 @@ code {
   max-width: 44em;
   margin: 0 0 12px;
   font-size: 17px;
-  color: #dfe4e1;
+  color: var(--ink);
 }
 
 .about-actions {
@@ -1842,10 +1844,10 @@ code {
 .about-btn {
   min-height: 48px;
   padding: 10px 24px;
-  border: 2px solid var(--white);
+  border: 2px solid var(--ink);
   border-radius: var(--radius);
-  background: transparent;
-  color: var(--white);
+  background: var(--white);
+  color: var(--ink);
   font-family: var(--font);
   font-size: 16px;
   font-weight: 700;
@@ -1854,13 +1856,13 @@ code {
 
 .about-btn.primary {
   background: var(--amber);
-  border-color: var(--amber);
+  border-color: var(--ink);
   color: var(--ink);
 }
 
 .about-btn:hover {
-  background: var(--white);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--white);
 }
 
 .about-btn:focus-visible,
@@ -1872,7 +1874,7 @@ code {
 .about-hero .about-count {
   margin-top: 20px;
   font-size: 15px;
-  color: #dfe4e1;
+  color: var(--muted);
 }
 
 .about-count strong {
@@ -1888,7 +1890,11 @@ code {
 }
 
 .about-main {
+  background: var(--white);
   padding-block: 56px 72px;
+}
+
+.about-main-inner {
   display: flex;
   flex-direction: column;
   gap: 56px;
@@ -1924,7 +1930,7 @@ code {
 
 .about-card {
   padding: 24px;
-  background: var(--white);
+  background: var(--paper);
   border: 1px solid var(--line);
   border-top: 4px solid var(--amber);
   border-radius: var(--radius);
@@ -1962,7 +1968,7 @@ code {
 .about-callout {
   margin: 20px 0 0;
   padding: 14px 20px;
-  background: var(--white);
+  background: var(--paper);
   border-left: 4px solid var(--amber);
   font-size: 15px;
 }

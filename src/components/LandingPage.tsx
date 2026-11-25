@@ -63,7 +63,8 @@ export default function LandingPage({ onEnterGeneral, onEnterInstant, reportCoun
         </div>
       </header>
 
-      <main className="about-inner about-main">
+      <main className="about-main">
+        <div className="about-inner about-main-inner">
         <section>
           <h2>這個系統可以做什麼？</h2>
           <div className="about-cards">
@@ -118,6 +119,7 @@ export default function LandingPage({ onEnterGeneral, onEnterInstant, reportCoun
             })}
           </div>
         </section>
+        </div>
       </main>
 
       <footer className="about-team">
